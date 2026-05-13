@@ -1,5 +1,5 @@
 Skill-Exchange – Android App using GenAI
-📌 Project Overview
+📌 Project Overview    https://vc-dhanush.github.io/tempforme/
 
 Skill-Exchange is an Android application designed for rural and local technicians to exchange services using a barter-based system instead of money. The platform helps skilled workers such as plumbers, electricians, carpenters, and mechanics collaborate by trading their skills and earning trust within the community.
 
@@ -96,17 +96,21 @@ Voice support for regional languages
 GPS-based nearby technician search
 Ratings and reviews system
 Offline mode support
-👨‍💻 Developed By
 
-Usfan Ali Khan
-BE – Computer Science Engineering
-Sir M Visvesvaraya Institute of Technology, Bengaluru
 
-<img width="1080" height="2340" alt="image" src="https://github.com/user-attachments/assets/1fe783e4-6b1a-428b-a64a-42995d929c4d" />
-<img width="1080" height="2340" alt="image" src="https://github.com/user-attachments/assets/fbd26c6f-0f57-47bb-986b-b6c338fae32a" />
-<img width="738" height="1600" alt="image" src="https://github.com/user-attachments/assets/e2e1546b-570c-4bb8-8a44-dab349d4c56c" />
-<img width="1080" height="2340" alt="image" src="https://github.com/user-attachments/assets/fc4f963b-5af8-4cfa-b241-76e393d9df02" />
-<img width="1080" height="2340" alt="image" src="https://github.com/user-attachments/assets/6b3d6588-af6e-4a9b-997c-9194d2df73af" />
+## Screenshots
+
+### Home Screen
+![Home Screen](Screenshot%202026-05-13%20095244.png)
+
+### Post Need Screen
+![Post Need Screen](Screenshot%202026-05-13%20095302.png)
+
+### Active Swaps Screen
+![Active Swaps Screen](Screenshot%202026-05-13%20095326.png)
+
+
+
 
 
 
