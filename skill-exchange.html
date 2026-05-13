@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SkillSwap – Barter Your Skills</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css" />
+<style>
+  :root {
+    --green-50:  #E1F5EE; --green-100: #9FE1CB; --green-400: #1D9E75;
+    --green-600: #0F6E56; --green-800: #085041;
+    --teal-50:   #E1F5EE; --teal-100: #9FE1CB;
+    --amber-100: #FAC775; --amber-800: #633806;
+    --coral-100: #F5C4B3; --coral-800: #712B13;
+    --purple-100:#CECBF6; --purple-800:#3C3489;
+    --blue-100:  #B5D4F4; --blue-800:  #0C447C;
+    --gray-50:   #F1EFE8; --gray-100: #D3D1C7; --gray-400: #888780; --gray-800: #2C2C2A;
+    --white: #ffffff;
+    --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    background: linear-gradient(135deg, #0F6E56 0%, #1D9E75 40%, #5DCAA5 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px 12px 40px;
+  }
+
+  /* ===== TOP HERO ===== */
+  .hero {
+    text-align: center;
+    color: #fff;
+    padding: 24px 0 20px;
+    max-width: 480px;
+    width: 100%;
+  }
+  .hero .logo {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+  .hero .logo span { color: #9FE1CB; }
+  .hero .tagline { font-size: 14px; opacity: 0.85; font-weight: 400; }
+
+  /* ===== PHONE SHELL ===== */
+  .phone {
+    width: 100%;
+    max-width: 420px;
+    background: #f2f5f3;
+    border-radius: 28px;
+    overflow: hidden;
+    border: 1.5px solid rgba(255,255,255,0.25);
+    display: flex;
+    flex-direction: column;
+    min-height: 680px;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+
+  /* ===== TOP BAR ===== */
+  .top-bar {
+    background: var(--green-400);
+    padding: 14px 16px 16px;
+  }
+  .top-bar-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .app-title { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: #fff; }
+  .app-sub   { font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+  .top-icons { display: flex; gap: 14px; align-items: center; }
+  .top-icons i { color: #fff; font-size: 22px; cursor: pointer; }
+  .search-bar {
+    background: rgba(255,255,255,0.2);
+    border-radius: 22px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .search-bar i { color: #fff; font-size: 16px; }
+  .search-bar span { font-size: 13px; color: rgba(255,255,255,0.85); }
+
+  /* ===== CONTENT AREA ===== */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .content.active { display: flex; }
+
+  /* ===== SECTION TITLE ===== */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--green-600);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* ===== CHIPS ===== */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.1s, opacity 0.15s;
+    font-family: var(--font-body);
+  }
+  .chip:active { transform: scale(0.95); }
+  .chip.c-teal   { background: var(--teal-100); color: var(--green-800); }
+  .chip.c-amber  { background: var(--amber-100); color: var(--amber-800); }
+  .chip.c-coral  { background: var(--coral-100); color: var(--coral-800); }
+  .chip.c-purple { background: var(--purple-100); color: var(--purple-800); }
+  .chip.c-blue   { background: var(--blue-100); color: var(--blue-800); }
+  .chip.c-green  { background: #C0DD97; color: #27500A; }
+  .chip.c-main   { background: var(--green-400); color: #fff; }
+
+  /* ===== CARD ===== */
+  .card {
+    background: var(--white);
+    border-radius: 14px;
+    border: 0.5px solid #c8d5d0;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .card-header { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 14px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .av-teal   { background: var(--teal-100); color: var(--green-800); }
+  .av-amber  { background: var(--amber-100); color: var(--amber-800); }
+  .av-coral  { background: var(--coral-100); color: var(--coral-800); }
+  .av-purple { background: var(--purple-100); color: var(--purple-800); }
+  .av-blue   { background: var(--blue-100); color: var(--blue-800); }
+  .av-green  { background: #C0DD97; color: #27500A; }
+
+  .card-name { font-size: 14px; font-weight: 600; color: var(--gray-800); }
+  .card-sub  { font-size: 11px; color: var(--gray-400); margin-top: 1px; }
+  .card-body { font-size: 13px; color: #444; line-height: 1.5; font-style: italic; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge.need   { background: var(--coral-100); color: var(--coral-800); }
+  .badge.offer  { background: var(--teal-100); color: var(--green-800); }
+  .badge.swap   { background: var(--purple-100); color: var(--purple-800); }
+  .badge.done   { background: #C0DD97; color: #27500A; }
+  .badge.pending{ background: var(--amber-100); color: var(--amber-800); }
+
+  .card-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+
+  .trust-bar { display: flex; align-items: center; gap: 6px; }
+  .trust-label { font-size: 11px; color: var(--gray-400); }
+  .trust-track { flex: 1; height: 5px; background: var(--green-50); border-radius: 3px; overflow: hidden; }
+  .trust-fill  { height: 100%; background: var(--green-400); border-radius: 3px; }
+  .trust-score { font-size: 11px; font-weight: 600; color: var(--green-600); }
+
+  /* ===== PROFILE ===== */
+  .profile-hero {
+    background: var(--green-400);
+    padding: 24px 16px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+  }
+  .profile-big-av {
+    width: 68px; height: 68px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 24px; font-weight: 700;
+    border: 2px solid rgba(255,255,255,0.4);
+  }
+  .profile-name { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: #fff; }
+  .profile-role { font-size: 12px; color: rgba(255,255,255,0.8); }
+
+  .stat-grid { display: flex; gap: 8px; }
+  .stat-box  {
+    flex: 1;
+    background: var(--green-50);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-num { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--green-600); }
+  .stat-lbl { font-size: 11px; color: var(--green-800); margin-top: 2px; }
+
+  /* ===== PROGRESS SWAP ===== */
+  .swap-progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 4px 0;
+  }
+  .step-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .step-dot.done  { background: var(--green-400); color: #fff; }
+  .step-dot.active{ background: var(--amber-100); color: var(--amber-800); border: 2px solid var(--amber-800); }
+  .step-dot.idle  { background: var(--gray-100); color: var(--gray-400); }
+  .step-line { flex: 1; height: 2px; background: var(--gray-100); }
+  .step-line.done { background: var(--green-400); }
+
+  /* ===== FAB ===== */
+  .fab {
+    position: absolute;
+    bottom: 70px; right: 14px;
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    background: var(--green-400);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(15,110,86,0.4);
+    transition: transform 0.15s;
+    z-index: 10;
+  }
+  .fab:active { transform: scale(0.92); }
+
+  /* ===== BOTTOM NAV ===== */
+  .bottom-nav {
+    background: var(--white);
+    border-top: 0.5px solid #c8d5d0;
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0 14px;
+    flex-shrink: 0;
+  }
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--gray-400);
+    cursor: pointer;
+    padding: 4px 14px;
+    border-radius: 10px;
+    border: none;
+    background: none;
+    font-family: var(--font-body);
+    transition: color 0.15s;
+  }
+  .nav-btn i { font-size: 22px; }
+  .nav-btn.active { color: var(--green-400); }
+
+  /* ===== RATING STARS ===== */
+  .stars { display: flex; gap: 2px; }
+  .stars i { font-size: 14px; color: #EF9F27; }
+  .stars i.empty { color: var(--gray-100); }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--green-800);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: transform 0.3s;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ===== MODAL ===== */
+  .modal-bg {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-bg.open { display: flex; }
+  .modal-sheet {
+    background: var(--white);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 16px 32px;
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--gray-100);
+    border-radius: 2px;
+    align-self: center;
+    margin-bottom: 4px;
+  }
+  .modal-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--gray-800); }
+  .modal-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--gray-100);
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--gray-800);
+    background: #f9fbfa;
+    resize: none;
+  }
+  .modal-input:focus { outline: 2px solid var(--green-400); border-color: transparent; }
+
+  /* ===== CHAT ===== */
+  .chat-bubble {
+    max-width: 75%;
+    padding: 9px 13px;
+    border-radius: 16px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .chat-bubble.me  { background: var(--green-400); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .chat-bubble.them{ background: var(--white); color: var(--gray-800); align-self: flex-start; border-bottom-left-radius: 4px; border: 0.5px solid #c8d5d0; }
+  .chat-time { font-size: 10px; opacity: 0.65; margin-top: 3px; }
+
+  /* scrollbar */
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-thumb { background: var(--green-100); border-radius: 2px; }
+
+  /* Responsive desktop centering info */
+  .desktop-info {
+    text-align: center;
+    color: rgba(255,255,255,0.7);
+    font-size: 12px;
+    margin-top: 14px;
+    max-width: 420px;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="logo">Skill<span>Swap</span> 🔄</div>
+  <div class="tagline">Exchange skills, build community — no money needed</div>
+</div>
+
+<div class="phone" id="phone">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="top-bar-row">
+      <div>
+        <div class="app-title">SkillSwap</div>
+        <div class="app-sub">Bengaluru Local Network</div>
+      </div>
+      <div class="top-icons">
+        <i class="ti ti-bell" title="Notifications"></i>
+        <i class="ti ti-messages" title="Chats"></i>
+      </div>
+    </div>
+    <div class="search-bar">
+      <i class="ti ti-search"></i>
+      <span>Search skills, needs, or people…</span>
+    </div>
+  </div>
+
+  <!-- ===== HOME SCREEN ===== -->
+  <div class="content active" id="screen-home">
+    <div class="section-title">Browse by skill</div>
+    <div class="chips">
+      <button class="chip c-teal">🔧 Plumbing</button>
+      <button class="chip c-blue">⚡ Electrical</button>
+      <button class="chip c-amber">🪵 Carpentry</button>
+      <button class="chip c-green">🎨 Painting</button>
+      <button class="chip c-coral">🔩 Welding</button>
+      <button class="chip c-purple">🧱 Masonry</button>
+      <button class="chip c-teal">🚗 Auto Repair</button>
+      <button class="chip c-blue">🧵 Tailoring</button>
+    </div>
+
+    <div class="section-title">Recent needs nearby</div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="avatar av-teal">RK</div>
+        <div style="flex:1">
+          <div class="card-name">Ravi Kumar</div>
+          <div class="card-sub"><i class="ti ti-map-pin" style="font-size:11px;vertical-align:-1px"></i> Electrician · 1.2 km away</div>
+        </div>
+        <span class="badge need">Need</span>
+      </div>
+      <div class="card-body">"Leaking pipe under kitchen sink — urgent fix needed."</div>
+      <div class="card-row">
+        <div><span class="badge offer">Offers: Electrical work</span></div>
+        <button class="chip c-main" onclick="showToast('Swap offer sent to Ravi!')">Offer Swap</button>
+      </div>
+      <div class="trust-bar">
+        <span class="trust-label">Trust</span>
+        <div class="trust-track"><div class="trust-fill" style="width:78%"></div></div>
+        <span class="trust-score">78</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="avatar av-amber">MJ</div>
+        <div style="flex:1">
+          <div class="card-name">Meena Joshi</div>
+          <div class="card-sub"><i class="ti ti-map-pin" style="font-size:11px;vertical-align:-1px"></i> Carpenter · 0.8 km away</div>
+        </div>
+        <span class="badge need">Need</span>
+      </div>
+      <div class="card-body">"Need help rewiring old ceiling fan — sparking issue."</div>
+      <div class="card-row">
+        <div><span class="badge offer">Offers: Woodwork</span></div>
+        <button class="chip c-main" onclick="showToast('Swap offer sent to Meena!')">Offer Swap</button>
+      </div>
+      <div class="trust-bar">
+        <span class="trust-label">Trust</span>
+        <div class="trust-track"><div class="trust-fill" style="width:65%"></div></div>
+        <span class="trust-score">65</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="avatar av-purple">SA</div>
+        <div style="flex:1">
+          <div class="card-name">Suresh Anand</div>
+          <div class="card-sub"><i class="ti ti-map-pin" style="font-size:11px;vertical-align:-1px"></i> Plumber · 2.1 km away</div>
+        </div>
+        <span class="badge swap">Swap</span>
+      </div>
+      <div class="card-body">"Roof patch needed before monsoon. Pipe installation in return."</div>
+      <div class="card-row">
+        <div><span class="badge offer">Offers: Plumbing</span></div>
+        <button class="chip c-purple" onclick="showChat()">Chat</button>
+      </div>
+      <div class="trust-bar">
+        <span class="trust-label">Trust</span>
+        <div class="trust-track"><div class="trust-fill" style="width:91%"></div></div>
+        <span class="trust-score">91</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="avatar av-coral">DL</div>
+        <div style="flex:1">
+          <div class="card-name">Deepa Lakshmi</div>
+          <div class="card-sub"><i class="ti ti-map-pin" style="font-size:11px;vertical-align:-1px"></i> Tailor · 0.4 km away</div>
+        </div>
+        <span class="badge need">Need</span>
+      </div>
+      <div class="card-body">"Two-wheeler won't start — need a mechanic for quick check."</div>
+      <div class="card-row">
+        <div><span class="badge offer">Offers: Stitching/Tailoring</span></div>
+        <button class="chip c-main" onclick="showToast('Swap offer sent to Deepa!')">Offer Swap</button>
+      </div>
+      <div class="trust-bar">
+        <span class="trust-label">Trust</span>
+        <div class="trust-track"><div class="trust-fill" style="width:55%"></div></div>
+        <span class="trust-score">55</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== NEEDS SCREEN ===== -->
+  <div class="content" id="screen-needs">
+    <div class="section-title">Post a new need</div>
+    <div class="card" style="border: 1px dashed var(--green-400);">
+      <div style="font-size:13px;font-weight:500;color:var(--green-600);margin-bottom:6px;">What do you need help with?</div>
+      <textarea class="modal-input" rows="2" placeholder="e.g. Leaking roof needs urgent repair…"></textarea>
+      <div style="font-size:13px;font-weight:500;color:var(--green-600);margin:4px 0 2px;">What can you offer in return?</div>
+      <input class="modal-input" type="text" placeholder="e.g. Plumbing, Electrical, Painting…" style="padding:9px 14px;" />
+      <button class="chip c-main" style="width:100%;padding:10px;font-size:13px;border-radius:10px;text-align:center;" onclick="showToast('Your need post is live!')">
+        <i class="ti ti-plus" style="font-size:14px;vertical-align:-1px;"></i> Post Need
+      </button>
+    </div>
+
+    <div class="section-title">Active need posts</div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="avatar av-teal">RK</div>
+        <div style="flex:1">
+          <div class="card-name">Ravi Kumar</div>
+          <div class="card-sub">Posted 2h ago · 3 offers received</div>
+        </div>
+        <span class="badge need">Open</span>
+      </div>
+      <div class="card-body">"Leaking pipe under kitchen sink — urgent fix needed."</div>
+      <div><span class="badge offer">Offers: Electrical work</span></div>
+      <div class="trust-bar">
+        <span class="trust-label">Trust</span>
+        <div class="trust-track"><div class="trust-fill" style="width:78%"></div></div>
+        <span class="trust-score">78</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="avatar av-blue">VR</div>
+        <div style="flex:1">
+          <div class="card-name">Vijay Rao</div>
+          <div class="card-sub">Posted 5h ago · 1 offer received</div>
+        </div>
+        <span class="badge need">Open</span>
+      </div>
+      <div class="card-body">"Broken bathroom tiles — need a mason for a half-day job."</div>
+      <div><span class="badge offer">Offers: Painting / Whitewash</span></div>
+      <div class="trust-bar">
+        <span class="trust-label">Trust</span>
+        <div class="trust-track"><div class="trust-fill" style="width:72%"></div></div>
+        <span class="trust-score">72</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SWAPS SCREEN ===== -->
+  <div class="content" id="screen-swaps">
+    <div class="section-title">My active swaps</div>
+
+    <div class="card" style="border-left: 3px solid var(--green-400); border-radius: 0 14px 14px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;font-weight:600;color:var(--green-600);">In progress</span>
+        <button class="chip c-teal" style="padding:3px 10px;font-size:11px;" onclick="showChat()">Chat</button>
+      </div>
+      <div class="card-header" style="margin-top:4px;">
+        <div class="avatar av-teal" style="width:34px;height:34px;font-size:12px;">RK</div>
+        <div>
+          <div class="card-name" style="font-size:13px;">You ↔ Ravi Kumar</div>
+          <div class="card-sub">Your Plumbing ↔ His Electrical</div>
+        </div>
+      </div>
+      <div class="swap-progress">
+        <div class="step-dot done"><i class="ti ti-check" style="font-size:12px;"></i></div>
+        <div class="step-line done"></div>
+        <div class="step-dot done"><i class="ti ti-check" style="font-size:12px;"></i></div>
+        <div class="step-line done"></div>
+        <div class="step-dot active">3</div>
+        <div class="step-line"></div>
+        <div class="step-dot idle">4</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button class="chip c-green" style="flex:1;text-align:center;font-size:12px;padding:7px;" onclick="showToast('Marked as done! Trust score updated.')">Mark done ✓</button>
+        <button class="chip c-coral" style="flex:1;text-align:center;font-size:12px;padding:7px;" onclick="showToast('Issue reported to moderator.')">Report issue</button>
+      </div>
+    </div>
+
+    <div class="card" style="border-left: 3px solid #EF9F27; border-radius: 0 14px 14px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;font-weight:600;color:var(--amber-800);">Pending confirmation</span>
+        <span class="badge pending">Waiting</span>
+      </div>
+      <div class="card-header" style="margin-top:4px;">
+        <div class="avatar av-amber" style="width:34px;height:34px;font-size:12px;">MJ</div>
+        <div>
+          <div class="card-name" style="font-size:13px;">You ↔ Meena Joshi</div>
+          <div class="card-sub">Your Electrical ↔ Her Carpentry</div>
+        </div>
+      </div>
+      <button class="chip c-amber" style="width:100%;text-align:center;font-size:12px;padding:7px;" onclick="showToast('Reminder sent to Meena.')">Send reminder</button>
+    </div>
+
+    <div class="section-title">Completed swaps</div>
+
+    <div class="card">
+      <div class="card-row">
+        <div>
+          <div class="card-name" style="font-size:13px;">With Suresh Anand</div>
+          <div class="card-sub">Plumbing ↔ Roofing · 12 days ago</div>
+        </div>
+        <span class="badge done">✓ Done</span>
+      </div>
+      <div class="stars">
+        <i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i>
+        <i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i>
+        <i class="ti ti-star empty"></i>
+        <span style="font-size:12px;color:var(--gray-400);margin-left:4px;">4.0</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-row">
+        <div>
+          <div class="card-name" style="font-size:13px;">With Priya Nair</div>
+          <div class="card-sub">Plumbing ↔ Cleaning · 28 days ago</div>
+        </div>
+        <span class="badge done">✓ Done</span>
+      </div>
+      <div class="stars">
+        <i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i>
+        <i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i>
+        <i class="ti ti-star-filled"></i>
+        <span style="font-size:12px;color:var(--gray-400);margin-left:4px;">5.0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PROFILE SCREEN ===== -->
+  <div class="content" id="screen-profile">
+    <div style="background:var(--green-400);margin:-14px -14px 0;padding:24px 16px 18px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;">
+      <div class="profile-big-av">UK</div>
+      <div class="profile-name">Usfan Ali Khan</div>
+      <div class="profile-role">Plumber · Sir MVIT, Bengaluru</div>
+      <div class="chips" style="justify-content:center;margin-top:4px;">
+        <span class="badge offer">✓ Verified</span>
+        <span class="badge swap">Trust: 87</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="section-title" style="margin:0 0 8px;">My stats</div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-num">14</div><div class="stat-lbl">Swaps done</div></div>
+        <div class="stat-box"><div class="stat-num">87</div><div class="stat-lbl">Trust score</div></div>
+        <div class="stat-box"><div class="stat-num">4.7</div><div class="stat-lbl">Avg rating</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title" style="margin:0 0 6px;">My skills</div>
+      <div class="chips">
+        <span class="chip c-teal">🔧 Plumbing</span>
+        <span class="chip c-blue">🚿 Pipe fitting</span>
+        <span class="chip c-green">💧 Water tank</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title" style="margin:0 0 6px;">I need help with</div>
+      <div class="chips">
+        <span class="chip c-amber">⚡ Electrical</span>
+        <span class="chip c-coral">🏠 Roofing</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title" style="margin:0 0 6px;">Recent reviews</div>
+      <div style="font-size:13px;color:#444;line-height:1.5;font-style:italic;">"Fixed our pipe leak in 20 mins. Very professional."</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+        <div class="avatar av-teal" style="width:24px;height:24px;font-size:9px;">RK</div>
+        <span style="font-size:11px;color:var(--gray-400);">Ravi Kumar · 3 days ago</span>
+      </div>
+    </div>
+
+    <button class="chip c-coral" style="width:100%;text-align:center;padding:10px;font-size:13px;border-radius:10px;" onclick="showToast('Logged out successfully.')">
+      <i class="ti ti-logout" style="font-size:14px;vertical-align:-1px;"></i> Logout
+    </button>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" id="fabBtn" onclick="openPostModal()" title="Post a need">
+    <i class="ti ti-plus"></i>
+  </button>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" id="nav-home" onclick="showScreen('home')">
+      <i class="ti ti-home"></i><span>Home</span>
+    </button>
+    <button class="nav-btn" id="nav-needs" onclick="showScreen('needs')">
+      <i class="ti ti-clipboard-list"></i><span>Needs</span>
+    </button>
+    <button class="nav-btn" id="nav-swaps" onclick="showScreen('swaps')">
+      <i class="ti ti-transfer"></i><span>Swaps</span>
+    </button>
+    <button class="nav-btn" id="nav-profile" onclick="showScreen('profile')">
+      <i class="ti ti-user"></i><span>Profile</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- CHAT MODAL -->
+<div class="modal-bg" id="chatModal" onclick="closeChatModal(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="avatar av-purple" style="width:36px;height:36px;font-size:12px;">SA</div>
+      <div>
+        <div class="modal-title">Suresh Anand</div>
+        <div style="font-size:11px;color:var(--gray-400);">Plumber · Trust 91</div>
+      </div>
+      <button style="margin-left:auto;border:none;background:none;font-size:22px;cursor:pointer;color:var(--gray-400);" onclick="closeModal('chatModal')">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;min-height:120px;">
+      <div class="chat-bubble them">Hi! I saw you offer plumbing services. I need my roof patched before the rains 🏠</div>
+      <div class="chat-bubble me">Yes I can help! I'll fix the roof — you do my pipe work in return?</div>
+      <div class="chat-bubble them">Deal! When can you come? Tomorrow 10am works?</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input class="modal-input" type="text" placeholder="Type a message…" id="chatInput" style="flex:1;padding:9px 14px;" onkeydown="if(event.key==='Enter')sendChat()" />
+      <button class="chip c-main" style="padding:9px 14px;font-size:13px;" onclick="sendChat()"><i class="ti ti-send" style="font-size:16px;"></i></button>
+    </div>
+  </div>
+</div>
+
+<!-- POST MODAL -->
+<div class="modal-bg" id="postModal" onclick="closePostModal(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="modal-title">Post a need</div>
+      <button style="border:none;background:none;font-size:22px;cursor:pointer;color:var(--gray-400);" onclick="closeModal('postModal')">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+    <div style="font-size:13px;color:var(--gray-400);margin-bottom:2px;">What do you need?</div>
+    <textarea class="modal-input" rows="3" id="postNeed" placeholder="e.g. My roof is leaking and needs repair before monsoon…"></textarea>
+    <div style="font-size:13px;color:var(--gray-400);margin-bottom:2px;">What skill can you offer?</div>
+    <input class="modal-input" type="text" id="postOffer" placeholder="e.g. Plumbing, Electrical, Carpentry…" style="padding:9px 14px;" />
+    <button class="chip c-main" style="width:100%;padding:11px;font-size:14px;border-radius:12px;text-align:center;" onclick="submitPost()">
+      Post need to community
+    </button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<div class="desktop-info">
+  Built with HTML · CSS · JS — deploy on GitHub Pages instantly
+</div>
+
+<script>
+function showScreen(name) {
+  document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  const screen = document.getElementById('screen-' + name);
+  const nav = document.getElementById('nav-' + name);
+  if (screen) screen.classList.add('active');
+  if (nav) nav.classList.add('active');
+  const fab = document.getElementById('fabBtn');
+  if (fab) fab.style.display = name === 'profile' ? 'none' : 'flex';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function showChat() {
+  document.getElementById('chatModal').classList.add('open');
+}
+function openPostModal() {
+  document.getElementById('postModal').classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+function closeChatModal(e) {
+  if (e.target === document.getElementById('chatModal')) closeModal('chatModal');
+}
+function closePostModal(e) {
+  if (e.target === document.getElementById('postModal')) closeModal('postModal');
+}
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  if (!input.value.trim()) return;
+  input.value = '';
+  showToast('Message sent!');
+}
+function submitPost() {
+  closeModal('postModal');
+  showToast('Your need is now live on the board!');
+}
+
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', function(e) {
+    if (!this.getAttribute('onclick') && !this.closest('.modal-sheet') && !this.closest('#screen-home') && !this.closest('#screen-profile') && !this.closest('#screen-needs') && !this.closest('#screen-swaps')) return;
+  });
+});
+</script>
+</body>
+</html>
