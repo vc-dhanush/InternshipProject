@@ -4,6 +4,7 @@
   "description": "Sky-blue attendance management dashboard (static HTML).",
   "scripts": {
     "start": "python3 -m http.server 5500 --bind 127.0.0.1",
-    "start:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./start-attendance.ps1 5500"
+    "start:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./start-attendance.ps1 5500",
+    "deploy": "npx --yes vercel@latest --prod --yes --name attendance-dashboard"
   }
 }
