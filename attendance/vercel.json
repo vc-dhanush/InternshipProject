@@ -1,5 +1,10 @@
 {
   "cleanUrls": true,
+  "trailingSlash": false,
+  "framework": null,
+  "installCommand": null,
+  "buildCommand": "echo \"static attendance app\"",
+  "outputDirectory": ".",
   "headers": [
     {
       "source": "/(.*)",
