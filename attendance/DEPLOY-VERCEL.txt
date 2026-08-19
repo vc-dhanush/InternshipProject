@@ -1,0 +1,22 @@
+Deploy the attendance app as a NEW Vercel project so it does not overwrite Skill-Exchange or GitHub Pages.
+
+1. Open https://vercel.com/new  (log in with GitHub if asked)
+2. Import repository: vc-dhanush/InternshipProject
+3. Project Name: attendance-dashboard
+   (must be a new name, not an existing Vercel project)
+4. Root Directory: attendance
+   (click Edit, type: attendance)
+5. Framework Preset: Other
+6. Build Command: leave empty / override empty is OK
+   (this folder already has vercel.json)
+7. BEFORE Deploy: Project Settings -> Git -> Production Branch
+   set to: cursor/attendance-dashboard-ae44
+   (main does not contain this app yet)
+8. Click Deploy
+
+Live URL will look like:
+  https://attendance-dashboard.vercel.app
+
+Browser data (6-month vault) is per website.
+After first visit, Download CSV from localhost and Import CSV on the Vercel URL
+if you want the same students/classes on the live site.
