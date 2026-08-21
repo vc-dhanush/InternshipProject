@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkyVault Attendance</title>
+  <meta name="description" content="Create classes, mark absents, and keep six months of attendance with charts and CSV." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --navy: #073356;
+      --ink: #0b3d62;
+      --muted: #4d7a9a;
+      --sky: #2aa3e0;
+      --sky-deep: #1480c4;
+      --ice: #eaf6ff;
+      --foam: #f7fcff;
+      --line: #c9e6f8;
+      --absent: #e45656;
+      --ok: #14956a;
+      --shadow: 0 18px 50px rgba(10, 90, 140, .12);
+      --r: 18px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 500px at 8% -8%, rgba(80, 210, 255, .45), transparent 55%),
+        radial-gradient(800px 420px at 94% 6%, rgba(129, 140, 248, .24), transparent 50%),
+        linear-gradient(180deg, #f4fbff 0%, #e6f3fc 100%);
+      overflow-x: hidden;
+    }
+    body::before, body::after {
+      content: "";
+      position: fixed;
+      z-index: -1;
+      width: 42vw; height: 42vw;
+      border-radius: 50%;
+      filter: blur(42px);
+      animation: aurora 16s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    body::before {
+      top: -12vw; left: -8vw;
+      background: radial-gradient(circle, rgba(56,189,248,.55), transparent 70%);
+    }
+    body::after {
+      right: -10vw; bottom: -14vw;
+      background: radial-gradient(circle, rgba(244,114,182,.22), rgba(99,102,241,.08) 70%);
+      animation-delay: -7s;
+    }
+    @keyframes aurora {
+      from { transform: translate(0,0) scale(1); }
+      to { transform: translate(36px, 24px) scale(1.1); }
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes sheen {
+      0%, 55% { transform: translateX(-120%); }
+      100% { transform: translateX(120%); }
+    }
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 8px 18px rgba(42,163,224,.18); }
+      50% { box-shadow: 0 0 28px rgba(56,189,248,.5); }
+    }
+    @keyframes hueflow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    button, input { font-family: inherit; }
+    button { cursor: pointer; }
+    .hidden { display: none !important; }
+    .app { max-width: 1120px; margin: 0 auto; padding: 22px 16px 56px; }
+    .screen { animation: rise .42s ease; }
+
+    .welcome { min-height: calc(100vh - 44px); display: grid; place-items: center; }
+    .welcome-card {
+      width: min(640px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(244,251,255,.88));
+      border: 1px solid #d4eefb;
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 42px 28px 32px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+    }
+    .welcome-card::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,.45) 48%, transparent 70%);
+      animation: sheen 5.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .cap {
+      width: 74px; height: 74px; margin: 0 auto 16px;
+      border-radius: 50%;
+      background: linear-gradient(160deg, #e8f6ff, #cfeeff);
+      border: 1px solid #c5e6f8;
+      display: grid; place-items: center;
+      animation: glow 2.8s ease-in-out infinite;
+    }
+    .kicker {
+      letter-spacing: .18em; font-size: 12px; font-weight: 700; color: var(--sky-deep); margin-bottom: 8px;
+    }
+    h1, h2, h3 { font-family: Outfit, DM Sans, sans-serif; color: var(--navy); }
+    h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; }
+    .lede { margin: 12px auto 18px; max-width: 480px; color: var(--muted); }
+    .feature {
+      display: flex; align-items: center; gap: 12px;
+      background: #fff; border: 1px solid var(--line); border-radius: 14px;
+      padding: 12px 14px; text-align: left; margin: 10px 0;
+    }
+    .feature .ico {
+      width: 36px; height: 36px; border-radius: 10px; background: var(--ice);
+      display: grid; place-items: center; flex: 0 0 auto; font-size: 16px;
+    }
+    .vault {
+      display: inline-flex; align-items: center; gap: 8px;
+      margin-top: 8px; padding: 7px 12px; border-radius: 999px;
+      background: linear-gradient(90deg, #0f172a, #1e3a5f);
+      color: #e0f2fe; font-size: 12px; font-weight: 700;
+    }
+    .vault i {
+      width: 8px; height: 8px; border-radius: 50%; background: #22d3ee;
+      box-shadow: 0 0 10px #22d3ee; display: inline-block; animation: glow 1.6s ease-in-out infinite;
+    }
+
+    .btn {
+      border: 0; border-radius: 12px; padding: 12px 18px; font-weight: 700; font-size: 15px;
+      transition: transform .15s ease, filter .15s ease;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary {
+      background: linear-gradient(90deg, #22d3ee, #38bdf8 40%, #818cf8);
+      background-size: 180% 180%; animation: hueflow 6s ease infinite;
+      color: #fff; box-shadow: 0 10px 22px rgba(20,128,196,.28);
+    }
+    .btn-primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+    .btn-ghost { background: #fff; color: var(--sky-deep); border: 1.5px solid #9fd4f0; }
+    .btn-soft { background: #e7f5ff; color: var(--sky-deep); border: 1px solid #bde3f7; }
+    .btn-wide { width: 100%; margin-top: 18px; padding: 14px; border-radius: 14px; }
+    .btn-danger { background: transparent; color: var(--absent); border: 0; font-weight: 700; }
+    .linkish { background: transparent; border: 0; color: var(--sky-deep); font-weight: 700; padding: 0; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .top-row { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 18px; }
+
+    .panel {
+      background: rgba(255,255,255,.92);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      backdrop-filter: blur(12px);
+    }
+    .class-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 18px 0 16px; }
+    .class-chip {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      border: 1.5px solid transparent; border-radius: 14px; padding: 14px;
+      font-weight: 700; color: var(--navy); text-align: left; background: #fff;
+    }
+    .class-chip:hover { transform: translateY(-2px); }
+    .class-chip small { display: block; font-weight: 600; color: var(--muted); margin-top: 2px; }
+    .c0 { background: linear-gradient(135deg,#e0f2fe,#fff); border-color:#7dd3fc; }
+    .c1 { background: linear-gradient(135deg,#ede9fe,#fff); border-color:#c4b5fd; }
+    .c2 { background: linear-gradient(135deg,#fce7f3,#fff); border-color:#f9a8d4; }
+    .c3 { background: linear-gradient(135deg,#dcfce7,#fff); border-color:#86efac; }
+    .c4 { background: linear-gradient(135deg,#ffedd5,#fff); border-color:#fdba74; }
+    .c5 { background: linear-gradient(135deg,#e0e7ff,#fff); border-color:#a5b4fc; }
+    .c6 { background: linear-gradient(135deg,#cffafe,#fff); border-color:#67e8f9; }
+    .c7 { background: linear-gradient(135deg,#fef9c3,#fff); border-color:#fde047; }
+    .c8 { background: linear-gradient(135deg,#ffe4e6,#fff); border-color:#fda4af; }
+    .c9 { background: linear-gradient(135deg,#d1fae5,#fff); border-color:#6ee7b7; }
+    .dash { border: 1.5px dashed #9fd4f0; border-radius: 16px; padding: 14px; background: #f8fcff; }
+    label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+    input[type="text"], input[type="date"], input[type="search"] {
+      width: 100%; border: 1.5px solid #bde3f7; border-radius: 12px;
+      padding: 12px 14px; font-size: 15px; color: var(--navy); background: #fff;
+    }
+    input:focus { outline: 2px solid #7dd3fc; border-color: #38bdf8; }
+
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 16px; }
+    .tab {
+      border: 1px solid var(--line); background: #fff; color: var(--muted);
+      border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 13px;
+    }
+    .tab.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px; text-align: center; }
+    .stat b { display: block; font-size: 22px; font-family: Outfit, sans-serif; }
+    .stat span { font-size: 12px; color: var(--muted); font-weight: 700; }
+
+    .student {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px;
+    }
+    .student.absent { background: #fff1f1; border-color: #fecaca; }
+    .badge {
+      font-size: 11px; font-weight: 800; letter-spacing: .04em;
+      padding: 4px 8px; border-radius: 999px; background: #dcfce7; color: #166534;
+    }
+    .student.absent .badge { background: #fee2e2; color: #991b1b; }
+    .reg { font-family: ui-monospace, monospace; font-size: 12px; color: var(--sky-deep); font-weight: 700; }
+    .empty { text-align: center; color: var(--muted); padding: 28px 8px; }
+
+    .charts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .chart-card {
+      background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 10px;
+    }
+    .chart-card h4 { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .chart-wrap { height: 168px; position: relative; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.45; }
+    .toast {
+      position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(12px);
+      background: #0f172a; color: #e0f2fe; padding: 10px 16px; border-radius: 999px;
+      font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; transition: .25s ease; z-index: 20;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    footer.note { margin-top: 16px; font-size: 12px; color: var(--muted); text-align: center; }
+    @media (max-width: 820px) {
+      .charts { grid-template-columns: 1fr 1fr; }
+      .stats { grid-template-columns: 1fr 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .class-grid, .charts { grid-template-columns: 1fr; }
+      .welcome-card { padding: 28px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section id="screen-welcome" class="screen welcome">
+      <div class="welcome-card">
+        <div class="cap" aria-hidden="true">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+            <path d="M3 10.5 12 5l9 5.5-9 5.5-9-5.5Z" stroke="#1480c4" stroke-width="1.8"/>
+            <path d="M6 12.8v4.2c0 .4.8 1.8 6 2.6 5.2-.8 6-2.2 6-2.6v-4.2" stroke="#38bdf8" stroke-width="1.8"/>
+          </svg>
+        </div>
+        <p class="kicker">ATTENDANCE MAINTENANCE</p>
+        <h1>SkyVault Classroom</h1>
+        <p class="lede">Create up to 10 classes, add students with unique register numbers, and mark only the absents. Everyone starts present.</p>
+        <div class="feature"><div class="ico">1</div><div><b>Welcome, then class vault</b><br /><span style="color:var(--muted);font-size:13px">Name a class and keep it after you close the tab.</span></div></div>
+        <div class="feature"><div class="ico">2</div><div><b>Add roster, mark absents</b><br /><span style="color:var(--muted);font-size:13px">Register numbers stay unique. Tap a student only to mark absent.</span></div></div>
+        <div class="feature"><div class="ico">3</div><div><b>Charts + 6-month CSV vault</b><br /><span style="color:var(--muted);font-size:13px">Pie, doughnut, bar, line, polar, radar — and downloadable CSV.</span></div></div>
+        <div class="vault"><i></i> Local vault keeps absences for 186 days</div>
+        <button class="btn btn-primary btn-wide" id="enter-app">Enter classroom</button>
+      </div>
+    </section>
+
+    <section id="screen-classes" class="screen hidden">
+      <div class="top-row">
+        <div>
+          <button class="linkish" id="back-welcome">← Welcome</button>
+          <h2 style="margin-top:8px">Class vault</h2>
+          <p class="lede" style="margin:6px 0 0">Create your own classes (max 10). No preset 1–10 list.</p>
+        </div>
+        <div class="vault"><i></i> <span id="vault-count">0 / 10 classes</span></div>
+      </div>
+      <div class="panel">
+        <div id="class-grid" class="class-grid"></div>
+        <div class="dash">
+          <label for="new-class">New class name</label>
+          <div class="row">
+            <input id="new-class" type="text" maxlength="40" placeholder="e.g. Grade 8 A — Science" style="flex:1;min-width:180px" />
+            <button class="btn btn-primary" id="add-class">Save class</button>
+          </div>
+          <p class="hint">Classes stay until you delete them. Attendance older than 6 months is pruned automatically.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-room" class="screen hidden">
+      <div class="top-row">
+        <div>
+          <button class="linkish" id="back-classes">← All classes</button>
+          <h2 id="room-title" style="margin-top:8px">Class</h2>
+          <p id="room-sub" class="lede" style="margin:6px 0 0"></p>
+        </div>
+        <button class="btn btn-danger" id="delete-class">Delete class</button>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="roster">Add students</button>
+        <button class="tab" data-tab="mark">Mark absents</button>
+        <button class="tab" data-tab="insights">Insights</button>
+        <button class="tab" data-tab="data">CSV vault</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="stat-total">0</b><span>Students</span></div>
+        <div class="stat"><b id="stat-present">0</b><span>Present today</span></div>
+        <div class="stat"><b id="stat-absent">0</b><span>Absent today</span></div>
+      </div>
+
+      <div id="tab-roster" class="panel">
+        <h3>Roster</h3>
+        <p class="hint">Register number must be unique in this class.</p>
+        <div class="row" style="margin:12px 0 16px">
+          <div style="flex:1;min-width:160px">
+            <label for="stu-name">Student name</label>
+            <input id="stu-name" type="text" maxlength="60" placeholder="Full name" />
+          </div>
+          <div style="width:160px">
+            <label for="stu-reg">Register no.</label>
+            <input id="stu-reg" type="text" maxlength="24" placeholder="e.g. 8A014" />
+          </div>
+          <div style="align-self:flex-end">
+            <button class="btn btn-primary" id="add-student">Add</button>
+          </div>
+        </div>
+        <div id="roster-list"></div>
+      </div>
+
+      <div id="tab-mark" class="panel hidden">
+        <div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:12px">
+          <div>
+            <label for="mark-date">Date</label>
+            <input id="mark-date" type="date" />
+          </div>
+          <p class="hint" style="margin:0">Everyone is present. Tap a card only to mark absent.</p>
+        </div>
+        <div id="mark-list"></div>
+      </div>
+
+      <div id="tab-insights" class="panel hidden">
+        <h3>Compact charts</h3>
+        <p class="hint">Today’s split plus 6-month absence trends for this class.</p>
+        <div class="charts" style="margin-top:12px">
+          <div class="chart-card"><h4>Today pie</h4><div class="chart-wrap"><canvas id="chart-pie"></canvas></div></div>
+          <div class="chart-card"><h4>Today doughnut</h4><div class="chart-wrap"><canvas id="chart-doughnut"></canvas></div></div>
+          <div class="chart-card"><h4>Absents by weekday</h4><div class="chart-wrap"><canvas id="chart-bar"></canvas></div></div>
+          <div class="chart-card"><h4>Daily absents (90d)</h4><div class="chart-wrap"><canvas id="chart-line"></canvas></div></div>
+          <div class="chart-card"><h4>Polar weekday</h4><div class="chart-wrap"><canvas id="chart-polar"></canvas></div></div>
+          <div class="chart-card"><h4>Top absentees radar</h4><div class="chart-wrap"><canvas id="chart-radar"></canvas></div></div>
+        </div>
+      </div>
+
+      <div id="tab-data" class="panel hidden">
+        <h3>CSV vault</h3>
+        <p class="hint">Download a full backup, then import it on another browser or on Vercel. Vault data is stored in this browser for ~6 months.</p>
+        <div class="row" style="margin-top:14px">
+          <button class="btn btn-primary" id="export-csv">Download CSV</button>
+          <button class="btn btn-soft" id="export-json">Download JSON</button>
+          <label class="btn btn-ghost" for="import-file">Import file</label>
+          <input id="import-file" type="file" accept=".csv,.json,text/csv,application/json" class="hidden" />
+        </div>
+        <p class="hint" id="data-status"></p>
+      </div>
+      <footer class="note">SkyVault is a static app. Localhost and Vercel are different sites — use CSV/JSON to copy records.</footer>
+    </section>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const RETENTION_DAYS = 186;
+    const MAX_CLASSES = 10;
+    const LS_KEY = "skyvault-attendance-v2";
+    const DB_NAME = "SkyVaultAttendance";
+    const DB_VER = 1;
+
+    const $ = (id) => document.getElementById(id);
+    const todayISO = () => new Date().toISOString().slice(0, 10);
+    const uid = () => crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2);
+    const daysAgo = (n) => {
+      const d = new Date();
+      d.setHours(0,0,0,0);
+      d.setDate(d.getDate() - n);
+      return d.toISOString().slice(0, 10);
+    };
+    const pruneDate = () => daysAgo(RETENTION_DAYS);
+
+    const state = {
+      teacher: "",
+      classes: [],
+      students: [],
+      absences: [],
+      activeClassId: null,
+      charts: {}
+    };
+
+    function toast(msg) {
+      const el = $("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.remove("show"), 2400);
+    }
+
+    function show(id) {
+      ["screen-welcome", "screen-classes", "screen-room"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+    }
+
+    function openDb() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VER);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains("vault")) db.createObjectStore("vault");
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function persist() {
+      pruneAbsences();
+      const payload = {
+        teacher: state.teacher,
+        classes: state.classes,
+        students: state.students,
+        absences: state.absences,
+        savedAt: new Date().toISOString()
+      };
+      const json = JSON.stringify(payload);
+      try { localStorage.setItem(LS_KEY, json); } catch (_) {}
+      try {
+        const db = await openDb();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction("vault", "readwrite");
+          tx.objectStore("vault").put(payload, "root");
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+      } catch (_) {}
+    }
+
+    async function hydrate() {
+      let data = null;
+      try {
+        const db = await openDb();
+        data = await new Promise((resolve, reject) => {
+          const tx = db.transaction("vault", "readonly");
+          const req = tx.objectStore("vault").get("root");
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => reject(req.error);
+        });
+        db.close();
+      } catch (_) {}
+      if (!data) {
+        try { data = JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch (_) { data = null; }
+      }
+      if (data) {
+        state.teacher = data.teacher || "";
+        state.classes = data.classes || [];
+        state.students = data.students || [];
+        state.absences = data.absences || [];
+      }
+      pruneAbsences();
+    }
+
+    function pruneAbsences() {
+      const cut = pruneDate();
+      const before = state.absences.length;
+      state.absences = state.absences.filter((a) => a.date >= cut);
+      return before - state.absences.length;
+    }
+
+    function studentsOf(classId) {
+      return state.students
+        .filter((s) => s.classId === classId)
+        .sort((a, b) => a.register.localeCompare(b.register, undefined, { numeric: true }));
+    }
+
+    function absentsOn(classId, date) {
+      return state.absences.filter((a) => a.classId === classId && a.date === date);
+    }
+
+    function isAbsent(studentId, date) {
+      return state.absences.some((a) => a.studentId === studentId && a.date === date);
+    }
+
+    function renderClasses() {
+      $("vault-count").textContent = state.classes.length + " / " + MAX_CLASSES + " classes";
+      const grid = $("class-grid");
+      if (!state.classes.length) {
+        grid.innerHTML = '<p class="empty" style="grid-column:1/-1">No classes yet. Create one below.</p>';
+        return;
+      }
+      grid.innerHTML = state.classes.map((c, i) => {
+        const n = studentsOf(c.id).length;
+        return `<button class="class-chip c${i % 10}" data-id="${c.id}">
+          <span>${escapeHtml(c.name)}<small>${n} student${n === 1 ? "" : "s"}</small></span>
+          <span>Open →</span>
+        </button>`;
+      }).join("");
+      grid.querySelectorAll(".class-chip").forEach((btn) => {
+        btn.onclick = () => openClass(btn.dataset.id);
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function openClass(id) {
+      state.activeClassId = id;
+      const cls = state.classes.find((c) => c.id === id);
+      if (!cls) return;
+      $("room-title").textContent = cls.name;
+      $("room-sub").textContent = "Unique registers · present by default · vault through " + pruneDate();
+      $("mark-date").value = $("mark-date").value || todayISO();
+      $("mark-date").min = pruneDate();
+      $("mark-date").max = todayISO();
+      switchTab("roster");
+      refreshRoom();
+      show("screen-room");
+    }
+
+    function refreshRoom() {
+      const cid = state.activeClassId;
+      if (!cid) return;
+      const date = $("mark-date").value || todayISO();
+      const roster = studentsOf(cid);
+      const abs = absentsOn(cid, date);
+      $("stat-total").textContent = roster.length;
+      $("stat-absent").textContent = abs.length;
+      $("stat-present").textContent = Math.max(0, roster.length - abs.length);
+      renderRoster(roster);
+      renderMark(roster, date);
+      if (!$("tab-insights").classList.contains("hidden")) drawCharts(cid, date, roster);
+    }
+
+    function renderRoster(roster) {
+      const box = $("roster-list");
+      if (!roster.length) {
+        box.innerHTML = '<p class="empty">Add the first student. They will show as present until you mark an absent.</p>';
+        return;
+      }
+      box.innerHTML = roster.map((s) => `
+        <div class="student">
+          <div>
+            <b>${escapeHtml(s.name)}</b>
+            <div class="reg">${escapeHtml(s.register)}</div>
+          </div>
+          <button class="btn btn-danger" data-del="${s.id}">Remove</button>
+        </div>`).join("");
+      box.querySelectorAll("[data-del]").forEach((btn) => {
+        btn.onclick = async () => {
+          const id = btn.dataset.del;
+          state.students = state.students.filter((s) => s.id !== id);
+          state.absences = state.absences.filter((a) => a.studentId !== id);
+          await persist();
+          refreshRoom();
+          toast("Student removed");
+        };
+      });
+    }
+
+    function renderMark(roster, date) {
+      const box = $("mark-list");
+      if (!roster.length) {
+        box.innerHTML = '<p class="empty">Add students first, then mark absents here.</p>';
+        return;
+      }
+      box.innerHTML = roster.map((s) => {
+        const abs = isAbsent(s.id, date);
+        return `<button class="student ${abs ? "absent" : ""}" data-toggle="${s.id}" style="width:100%;text-align:left">
+          <div>
+            <b>${escapeHtml(s.name)}</b>
+            <div class="reg">${escapeHtml(s.register)}</div>
+          </div>
+          <span class="badge">${abs ? "ABSENT" : "PRESENT"}</span>
+        </button>`;
+      }).join("");
+      box.querySelectorAll("[data-toggle]").forEach((btn) => {
+        btn.onclick = async () => {
+          const sid = btn.dataset.toggle;
+          const cid = state.activeClassId;
+          const existing = state.absences.find((a) => a.studentId === sid && a.date === date);
+          if (existing) {
+            state.absences = state.absences.filter((a) => a !== existing);
+            toast("Marked present");
+          } else {
+            state.absences.push({ id: uid(), classId: cid, studentId: sid, date });
+            toast("Marked absent");
+          }
+          await persist();
+          refreshRoom();
+        };
+      });
+    }
+
+    function switchTab(name) {
+      ["roster", "mark", "insights", "data"].forEach((t) => {
+        $("tab-" + t).classList.toggle("hidden", t !== name);
+      });
+      document.querySelectorAll(".tab").forEach((el) => el.classList.toggle("active", el.dataset.tab === name));
+      if (name === "insights") refreshRoom();
+    }
+
+    function destroyCharts() {
+      Object.values(state.charts).forEach((c) => { try { c.destroy(); } catch (_) {} });
+      state.charts = {};
+    }
+
+    function drawCharts(classId, date, roster) {
+      destroyCharts();
+      if (typeof Chart === "undefined") return;
+      const present = Math.max(0, roster.length - absentsOn(classId, date).length);
+      const absent = absentsOn(classId, date).length;
+      const pal = { present: "#38bdf8", absent: "#f472b6", ink: "#0b3d62" };
+      const common = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true, labels: { boxWidth: 10, font: { size: 10 } } } }
+      };
+      const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const byDay = [0,0,0,0,0,0,0];
+      const classAbs = state.absences.filter((a) => a.classId === classId);
+      classAbs.forEach((a) => { byDay[new Date(a.date + "T12:00:00").getDay()]++; });
+      const start = daysAgo(89);
+      const lineLabels = [];
+      const lineData = [];
+      for (let i = 89; i >= 0; i--) {
+        const d = daysAgo(i);
+        if (d < start) continue;
+        lineLabels.push(d.slice(5));
+        lineData.push(classAbs.filter((a) => a.date === d).length);
+      }
+      const counts = {};
+      classAbs.forEach((a) => { counts[a.studentId] = (counts[a.studentId] || 0) + 1; });
+      const top = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 6);
+      const radarLabels = top.map(([id]) => {
+        const s = state.students.find((x) => x.id === id);
+        return s ? s.name.split(" ")[0] : "—";
+      });
+      const radarData = top.map(([, n]) => n);
+      if (!radarLabels.length) { radarLabels.push("No absents"); radarData.push(0); }
+
+      const mk = (id, cfg) => {
+        const ctx = $(id);
+        if (!ctx) return;
+        state.charts[id] = new Chart(ctx, cfg);
+      };
+      mk("chart-pie", { type: "pie", data: { labels: ["Present", "Absent"], datasets: [{ data: [present, absent], backgroundColor: [pal.present, pal.absent] }] }, options: common });
+      mk("chart-doughnut", { type: "doughnut", data: { labels: ["Present", "Absent"], datasets: [{ data: [present, absent], backgroundColor: ["#22d3ee", "#fb7185"] }] }, options: common });
+      mk("chart-bar", { type: "bar", data: { labels: weekdays, datasets: [{ label: "Absents", data: byDay, backgroundColor: "#818cf8" }] }, options: { ...common, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
+      mk("chart-line", { type: "line", data: { labels: lineLabels, datasets: [{ label: "Absents", data: lineData, borderColor: "#0284c7", backgroundColor: "rgba(56,189,248,.25)", fill: true, tension: .35, pointRadius: 0 }] }, options: { ...common, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 8, font: { size: 9 } } }, y: { beginAtZero: true, ticks: { precision: 0 } } } } });
+      mk("chart-polar", { type: "polarArea", data: { labels: weekdays, datasets: [{ data: byDay, backgroundColor: ["#7dd3fc","#a5b4fc","#f9a8d4","#86efac","#fdba74","#67e8f9","#fde047"] }] }, options: { ...common, scales: { r: { ticks: { display: false } } } } });
+      mk("chart-radar", { type: "radar", data: { labels: radarLabels, datasets: [{ label: "Absents (6 mo)", data: radarData, backgroundColor: "rgba(129,140,248,.25)", borderColor: "#6366f1" }] }, options: { ...common, scales: { r: { beginAtZero: true, ticks: { display: false } } } } });
+    }
+
+    function csvEscape(v) {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+
+    function buildCsv() {
+      const lines = [["type","class","register","student","date","status"].join(",")];
+      state.classes.forEach((c) => {
+        const roster = studentsOf(c.id);
+        if (!roster.length) {
+          lines.push(["class", csvEscape(c.name), "", "", "", "vault"].join(","));
+        }
+        const dates = new Set(state.absences.filter((a) => a.classId === c.id).map((a) => a.date));
+        dates.add(todayISO());
+        [...dates].sort().forEach((date) => {
+          roster.forEach((s) => {
+            const status = isAbsent(s.id, date) ? "absent" : "present";
+            lines.push(["attendance", csvEscape(c.name), csvEscape(s.register), csvEscape(s.name), date, status].join(","));
+          });
+        });
+      });
+      return lines.join("\n");
+    }
+
+    function download(filename, text, type) {
+      const blob = new Blob([text], { type });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = []; let cell = ""; let q = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (q) {
+          if (ch === '"' && text[i+1] === '"') { cell += '"'; i++; }
+          else if (ch === '"') q = false;
+          else cell += ch;
+        } else if (ch === '"') q = true;
+        else if (ch === ",") { row.push(cell); cell = ""; }
+        else if (ch === "\n" || ch === "\r") {
+          if (ch === "\r" && text[i+1] === "\n") i++;
+          row.push(cell); rows.push(row); row = []; cell = "";
+        } else cell += ch;
+      }
+      if (cell || row.length) { row.push(cell); rows.push(row); }
+      return rows;
+    }
+
+    async function importPayload(text, name) {
+      if (name.endsWith(".json") || text.trim().startsWith("{")) {
+        const data = JSON.parse(text);
+        state.classes = data.classes || [];
+        state.students = data.students || [];
+        state.absences = data.absences || [];
+        state.teacher = data.teacher || state.teacher;
+      } else {
+        const rows = parseCsv(text);
+        const header = rows.shift() || [];
+        const idx = (k) => header.findIndex((h) => String(h).toLowerCase().trim() === k);
+        const iType = idx("type"), iClass = idx("class"), iReg = idx("register"), iStu = idx("student"), iDate = idx("date"), iStatus = idx("status");
+        const classByName = new Map();
+        const ensureClass = (name) => {
+          if (!name) return null;
+          if (classByName.has(name)) return classByName.get(name);
+          let c = state.classes.find((x) => x.name === name);
+          if (!c) {
+            if (state.classes.length >= MAX_CLASSES) return null;
+            c = { id: uid(), name, createdAt: new Date().toISOString() };
+            state.classes.push(c);
+          }
+          classByName.set(name, c);
+          return c;
+        };
+        rows.forEach((r) => {
+          const type = (r[iType] || "attendance").toLowerCase();
+          const className = r[iClass] || "";
+          const c = ensureClass(className);
+          if (!c) return;
+          if (type === "class") return;
+          const reg = (r[iReg] || "").trim();
+          const stuName = (r[iStu] || "").trim();
+          if (!reg || !stuName) return;
+          let s = state.students.find((x) => x.classId === c.id && x.register.toLowerCase() === reg.toLowerCase());
+          if (!s) {
+            s = { id: uid(), classId: c.id, name: stuName, register: reg, createdAt: new Date().toISOString() };
+            state.students.push(s);
+          }
+          const date = r[iDate];
+          const status = (r[iStatus] || "").toLowerCase();
+          if (date && status === "absent" && !isAbsent(s.id, date)) {
+            state.absences.push({ id: uid(), classId: c.id, studentId: s.id, date });
+          }
+        });
+      }
+      pruneAbsences();
+      if (state.classes.length > MAX_CLASSES) state.classes = state.classes.slice(0, MAX_CLASSES);
+      await persist();
+      renderClasses();
+      if (state.activeClassId) refreshRoom();
+      toast("Imported into vault");
+      $("data-status").textContent = "Imported " + state.classes.length + " classes, " + state.students.length + " students, " + state.absences.length + " absences.";
+    }
+
+    $("enter-app").onclick = () => { renderClasses(); show("screen-classes"); };
+    $("back-welcome").onclick = () => show("screen-welcome");
+    $("back-classes").onclick = () => { state.activeClassId = null; destroyCharts(); renderClasses(); show("screen-classes"); };
+
+    $("add-class").onclick = async () => {
+      const name = $("new-class").value.trim();
+      if (!name) return toast("Name the class first");
+      if (state.classes.length >= MAX_CLASSES) return toast("Maximum 10 classes");
+      if (state.classes.some((c) => c.name.toLowerCase() === name.toLowerCase())) return toast("Class already exists");
+      state.classes.push({ id: uid(), name, createdAt: new Date().toISOString() });
+      $("new-class").value = "";
+      await persist();
+      renderClasses();
+      toast("Class saved to vault");
+    };
+
+    $("delete-class").onclick = async () => {
+      const cid = state.activeClassId;
+      if (!cid) return;
+      if (!confirm("Delete this class, its students, and absences?")) return;
+      state.classes = state.classes.filter((c) => c.id !== cid);
+      state.students = state.students.filter((s) => s.classId !== cid);
+      state.absences = state.absences.filter((a) => a.classId !== cid);
+      state.activeClassId = null;
+      await persist();
+      renderClasses();
+      show("screen-classes");
+      toast("Class deleted");
+    };
+
+    $("add-student").onclick = async () => {
+      const cid = state.activeClassId;
+      const name = $("stu-name").value.trim();
+      const register = $("stu-reg").value.trim();
+      if (!name || !register) return toast("Need name and register number");
+      const taken = studentsOf(cid).some((s) => s.register.toLowerCase() === register.toLowerCase());
+      if (taken) return toast("Register number must be unique");
+      state.students.push({ id: uid(), classId: cid, name, register, createdAt: new Date().toISOString() });
+      $("stu-name").value = "";
+      $("stu-reg").value = "";
+      await persist();
+      refreshRoom();
+      toast("Student added as present");
+    };
+
+    document.querySelectorAll(".tab").forEach((el) => {
+      el.onclick = () => switchTab(el.dataset.tab);
+    });
+    $("mark-date").onchange = () => refreshRoom();
+    $("export-csv").onclick = () => {
+      download("skyvault-attendance.csv", buildCsv(), "text/csv");
+      toast("CSV downloaded");
+    };
+    $("export-json").onclick = () => {
+      download("skyvault-attendance.json", JSON.stringify({
+        teacher: state.teacher, classes: state.classes, students: state.students, absences: state.absences, savedAt: new Date().toISOString()
+      }, null, 2), "application/json");
+      toast("JSON downloaded");
+    };
+    $("import-file").onchange = async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      try { await importPayload(await file.text(), file.name.toLowerCase()); }
+      catch (err) { toast("Could not import that file"); }
+    };
+
+    hydrate().then(() => {
+      const n = pruneAbsences();
+      persist();
+      $("data-status").textContent = "Vault loaded: " + state.classes.length + " classes, " + state.absences.length + " absences kept since " + pruneDate() + (n ? " (" + n + " old rows pruned)." : ".");
+    });
+  </script>
+</body>
+</html>
