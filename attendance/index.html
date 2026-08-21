@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attendance Maintenance System</title>
+  <meta name="description" content="Sky-blue attendance dashboard: create classes, mark absents, chart each student, and keep six months of CSV-ready records." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --navy: #073356;
+      --ink: #0b3d62;
+      --muted: #4d7a9a;
+      --sky: #2aa3e0;
+      --sky-deep: #1480c4;
+      --ice: #eaf6ff;
+      --card: #ffffff;
+      --line: #c9e6f8;
+      --absent: #e45656;
+      --absent-soft: #fff1f1;
+      --ok: #1b9e6e;
+      --shadow: 0 18px 50px rgba(10, 90, 140, 0.12);
+      --r: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 500px at 8% -8%, rgba(80, 210, 255, .45) 0%, transparent 55%),
+        radial-gradient(800px 420px at 92% 8%, rgba(168, 85, 247, .22) 0%, transparent 50%),
+        radial-gradient(700px 380px at 40% 110%, rgba(34, 211, 238, .18) 0%, transparent 48%),
+        linear-gradient(180deg, #f4fbff 0%, #e6f3fc 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before, body::after {
+      content: "";
+      position: fixed;
+      z-index: -1;
+      width: 42vw; height: 42vw;
+      border-radius: 50%;
+      filter: blur(40px);
+      animation: aurora 18s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    body::before {
+      top: -12vw; left: -8vw;
+      background: radial-gradient(circle, rgba(56,189,248,.55), rgba(14,165,233,.05) 70%);
+    }
+    body::after {
+      right: -10vw; bottom: -14vw;
+      background: radial-gradient(circle, rgba(244,114,182,.28), rgba(99,102,241,.08) 70%);
+      animation-delay: -7s;
+    }
+    @keyframes aurora {
+      from { transform: translate(0,0) scale(1); }
+      to { transform: translate(40px, 28px) scale(1.12); }
+    }
+    @keyframes hueflow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes pop-in {
+      from { opacity: 0; transform: translateY(8px) scale(.98); }
+      to { opacity: 1; transform: none; }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: inset 0 1px 0 #fff, 0 8px 18px rgba(42,163,224,.18); }
+      50% { box-shadow: inset 0 1px 0 #fff, 0 0 28px rgba(56,189,248,.55); }
+    }
+    @keyframes sheen {
+      0%, 55% { transform: translateX(-120%); }
+      100% { transform: translateX(120%); }
+    }
+    button, input, select { font-family: inherit; }
+    button { cursor: pointer; }
+    .hidden { display: none !important; }
+    .app { max-width: 1120px; margin: 0 auto; padding: 22px 18px 48px; }
+    .screen { animation: rise .45s ease; }
+    .welcome { min-height: calc(100vh - 44px); display: grid; place-items: center; }
+    .welcome-card {
+      width: min(640px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,.92) 0%, rgba(244,251,255,.88) 100%);
+      border: 1px solid #d4eefb;
+      border-radius: 28px;
+      box-shadow: var(--shadow), 0 0 0 1px rgba(255,255,255,.7) inset;
+      padding: 42px 32px 36px;
+      text-align: center;
+      backdrop-filter: blur(16px);
+      position: relative;
+      overflow: hidden;
+    }
+    .welcome-card::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(110deg, transparent 20%, rgba(255,255,255,.45) 48%, transparent 70%);
+      transform: translateX(-120%);
+      animation: sheen 5.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .cap {
+      width: 72px; height: 72px; margin: 0 auto 18px;
+      border-radius: 50%;
+      background: linear-gradient(160deg, #e8f6ff, #cfeeff);
+      border: 1px solid #c5e6f8;
+      display: grid; place-items: center;
+      animation: pulse-glow 2.8s ease-in-out infinite;
+    }
+    .kicker {
+      letter-spacing: .18em; font-size: 12px; font-weight: 700;
+      color: var(--sky-deep); margin-bottom: 8px;
+    }
+    h1 {
+      font-family: Outfit, DM Sans, sans-serif;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.15;
+      color: var(--navy);
+    }
+    h2 { font-family: Outfit, DM Sans, sans-serif; color: var(--navy); font-size: 22px; }
+    .lede { margin: 12px auto 22px; max-width: 460px; color: var(--muted); }
+    .feature {
+      display: flex; align-items: center; gap: 12px;
+      background: #fff; border: 1px solid var(--line); border-radius: 14px;
+      padding: 12px 14px; text-align: left; margin: 10px 0;
+      box-shadow: 0 8px 22px rgba(20, 110, 170, 0.10);
+      animation: pop-in .5s ease both;
+    }
+    .feature .ico {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--ice); color: var(--sky-deep);
+      display: grid; place-items: center; flex: 0 0 auto; font-weight: 800;
+    }
+    .btn {
+      border: 0; border-radius: 12px; padding: 12px 18px;
+      font-weight: 700; font-size: 15px;
+      transition: transform .15s ease, filter .15s ease, background .15s ease;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary {
+      background: linear-gradient(90deg, #22d3ee, #38bdf8 40%, #818cf8);
+      background-size: 180% 180%;
+      animation: hueflow 6s ease infinite;
+      color: #fff;
+      box-shadow: 0 10px 22px rgba(20,128,196,.28);
+    }
+    .btn-primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+    .btn-ghost {
+      background: #fff; color: var(--sky-deep); border: 1.5px solid #9fd4f0;
+    }
+    .btn-ghost:hover { background: var(--ice); }
+    .btn-wide { width: 100%; margin-top: 22px; padding: 14px; font-size: 16px; border-radius: 14px; }
+    .btn-danger { background: transparent; color: var(--absent); border: 0; font-weight: 700; }
+    .btn-soft { background: #e7f5ff; color: var(--sky-deep); border: 1px solid #bde3f7; }
+    .top-row { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 18px; }
+    .linkish { background: transparent; border: 0; color: var(--sky-deep); font-weight: 700; padding: 0; }
+    .panel {
+      background: rgba(255,255,255,.9);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      backdrop-filter: blur(12px);
+      animation: rise .5s ease;
+    }
+    .class-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 18px 0 22px; }
+    .class-chip {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      border: 1.5px solid transparent; border-radius: 14px; padding: 14px;
+      font-weight: 700; color: var(--navy);
+      box-shadow: 0 6px 16px rgba(20,110,170,.08);
+      animation: pop-in .4s ease both;
+    }
+    .class-chip:hover, .class-chip.active { transform: translateY(-2px) scale(1.01); }
+    .class-chip.c0 { background: linear-gradient(135deg,#e0f2fe,#fff); border-color:#7dd3fc; }
+    .class-chip.c1 { background: linear-gradient(135deg,#ede9fe,#fff); border-color:#c4b5fd; }
+    .class-chip.c2 { background: linear-gradient(135deg,#fce7f3,#fff); border-color:#f9a8d4; }
+    .class-chip.c3 { background: linear-gradient(135deg,#dcfce7,#fff); border-color:#86efac; }
+    .class-chip.c4 { background: linear-gradient(135deg,#ffedd5,#fff); border-color:#fdba74; }
+    .class-chip.c5 { background: linear-gradient(135deg,#e0e7ff,#fff); border-color:#a5b4fc; }
+    .class-chip.c6 { background: linear-gradient(135deg,#cffafe,#fff); border-color:#67e8f9; }
+    .class-chip.c7 { background: linear-gradient(135deg,#fef9c3,#fff); border-color:#fde047; }
+    .class-chip.c8 { background: linear-gradient(135deg,#ffe4e6,#fff); border-color:#fda4af; }
+    .class-chip.c9 { background: linear-gradient(135deg,#d1fae5,#fff); border-color:#6ee7b7; }
+    .vault {
+      display: inline-flex; align-items: center; gap: 8px;
+      margin-top: 10px; padding: 7px 12px; border-radius: 999px;
+      background: linear-gradient(90deg, #0f172a, #1e3a5f);
+      color: #e0f2fe; font-size: 12px; font-weight: 700; letter-spacing: .04em;
+    }
+    .vault i {
+      width: 8px; height: 8px; border-radius: 50%; background: #22d3ee;
+      box-shadow: 0 0 10px #22d3ee; animation: pulse-glow 1.6s ease-in-out infinite;
+      display: inline-block;
+    }
+    .custom-box {
+      border: 1.5px dashed #9fd4f0; border-radius: 16px; padding: 16px; background: #f8fcff;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .grow { flex: 1 1 180px; }
+    label.field { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+    input[type="text"], input[type="date"], input[type="search"], select {
+      width: 100%; border: 1.5px solid #c5e4f6; border-radius: 12px;
+      padding: 12px; background: #fff; color: var(--navy); outline: none;
+    }
+    input:focus, select:focus { border-color: var(--sky); box-shadow: 0 0 0 4px rgba(42,163,224,.14); }
+    table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+    th { text-align: left; font-size: 13px; color: var(--muted); background: #eaf6ff; padding: 10px 12px; }
+    td { padding: 12px; border-bottom: 1px solid #eaf4fb; }
+    .dash-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+    .dept { color: var(--sky); font-weight: 800; letter-spacing: .08em; font-size: 13px; text-transform: uppercase; }
+    .hint { color: var(--muted); margin-top: 6px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0 16px; }
+    .tab {
+      background: #fff; border: 1.5px solid #cfe8f7; border-radius: 14px;
+      padding: 14px 10px; color: var(--ink); font-weight: 700;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 8px 22px rgba(20, 110, 170, 0.10);
+    }
+    .tab.active {
+      background: linear-gradient(90deg, #22d3ee, #38bdf8 40%, #818cf8);
+      background-size: 180% 180%;
+      animation: hueflow 6s ease infinite;
+      color: #fff; border-color: transparent;
+    }
+    .summary {
+      background: linear-gradient(90deg, #e7f6ff, #f3fbff);
+      border: 1px solid #cfe8f7; border-radius: 12px;
+      padding: 10px 14px; font-weight: 600; margin: 14px 0;
+    }
+    .student-list { display: grid; gap: 10px; }
+    .student-card {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      background: #fff; border: 1px solid var(--line); border-radius: 14px;
+      padding: 14px 16px; animation: pop-in .35s ease both;
+    }
+    .student-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(56,189,248,.18); }
+    .student-card.absent { background: var(--absent-soft); border-color: #f3c4c4; }
+    .name { font-weight: 800; color: #102a3d; }
+    .reg { color: var(--sky-deep); font-size: 13px; font-weight: 700; margin-top: 2px; }
+    .pill { border: 0; border-radius: 999px; padding: 8px 14px; font-weight: 800; font-size: 12px; letter-spacing: .04em; }
+    .pill.present { background: #d9f0ff; color: var(--sky-deep); }
+    .pill.gone { background: var(--absent); color: #fff; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .col { border: 1px solid var(--line); border-radius: 16px; padding: 14px; background: #fff; min-height: 180px; }
+    .col.absent-col { background: var(--absent-soft); border-color: #f3c4c4; }
+    .col h3 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .badge {
+      background: var(--sky-deep); color: #fff; border-radius: 999px;
+      min-width: 28px; height: 28px; display: grid; place-items: center; font-size: 13px;
+    }
+    .kid { background: #fff; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid #e5f3fb; font-weight: 700; }
+    .kid b { color: var(--sky-deep); margin-right: 6px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+    .stat { background: var(--ice); border: 1px solid #d4eaf8; border-radius: 14px; padding: 14px; }
+    .stat.alert { background: var(--absent-soft); border-color: #f3c4c4; }
+    .stat span { display: block; font-size: 13px; color: var(--muted); font-weight: 600; }
+    .stat strong { font-size: 28px; font-family: Outfit, sans-serif; color: var(--navy); }
+    .stat.alert strong { color: var(--absent); }
+    .chart-wrap { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 12px; }
+    .chart-box { width: min(240px, 72%); height: 200px; margin: 8px auto 0; }
+    .legend { display: flex; gap: 16px; justify-content: center; margin-top: 8px; color: var(--muted); font-weight: 600; }
+    .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 6px; }
+    .toast {
+      position: fixed; right: 18px; bottom: 18px;
+      background: var(--navy); color: #fff; padding: 12px 16px; border-radius: 12px;
+      box-shadow: var(--shadow); z-index: 20; animation: rise .3s ease;
+    }
+    .filters { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+    .search-row { margin: 12px 0 4px; max-width: 360px; }
+    @media (max-width: 860px) {
+      .tabs, .split, .stats, .class-grid { grid-template-columns: 1fr 1fr; }
+      .filters { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .tabs { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .split { grid-template-columns: 1fr; }
+      .welcome-card { padding: 28px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section id="screen-welcome" class="screen welcome">
+      <div class="welcome-card">
+        <div class="cap" aria-hidden="true">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1480c4" stroke-width="1.8">
+            <path d="M3 10 12 5l9 5-9 5-9-5Z"/><path d="M7 12v5c0 1 2.2 3 5 3s5-2 5-3v-5"/>
+          </svg>
+        </div>
+        <p class="kicker">WELCOME</p>
+        <h1>Attendance Maintenance System</h1>
+        <p class="lede">Create classes, add students, mark only who is absent, and keep six months of records on this device — even after you close the tab.</p>
+        <div class="feature"><span class="ico">1</span><div>Name your own classes (up to 10 saved)</div></div>
+        <div class="feature"><span class="ico">2</span><div>Unique register numbers for every student</div></div>
+        <div class="feature"><span class="ico">3</span><div>Everyone is present until you mark them absent</div></div>
+        <span class="vault"><i></i> 6-month memory vault · survives close</span>
+        <button class="btn btn-primary btn-wide" type="button" id="btn-start">Get Started</button>
+      </div>
+    </section>
+
+    <section id="screen-class" class="screen hidden">
+      <button class="linkish" type="button" data-go="welcome">← Back</button>
+      <div class="panel" style="margin-top:14px">
+        <h1>Create / Open Class</h1>
+        <p class="hint">No preset list. You name the class. Up to <strong>10 classes</strong> stay saved on this device for 6+ months.</p>
+        <p class="hint" id="class-count-label"></p>
+        <div class="class-grid" id="saved-classes"></div>
+        <div class="custom-box">
+          <p style="font-weight:800;margin-bottom:10px;color:var(--navy)">Create a class</p>
+          <div class="row">
+            <input class="grow" id="custom-class" type="text" maxlength="40" placeholder="e.g. Mechanical A" />
+            <button class="btn btn-primary" type="button" id="btn-create-class">Create &amp; Continue</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-students" class="screen hidden">
+      <button class="linkish" type="button" data-go="class">← Change class</button>
+      <div class="panel" style="margin-top:14px">
+        <p class="hint">Selected class</p>
+        <h1 id="students-class-name">—</h1>
+        <p class="hint">Add students with a unique register number in this class.</p>
+        <div class="row" style="margin-top:16px">
+          <div class="grow">
+            <label class="field" for="stu-name">Student name</label>
+            <input id="stu-name" type="text" placeholder="Student name" />
+          </div>
+          <div class="grow">
+            <label class="field" for="stu-reg">Register number (unique)</label>
+            <input id="stu-reg" type="text" placeholder="Register number" />
+          </div>
+        </div>
+        <button class="btn btn-primary" type="button" id="btn-add-student" style="margin-top:12px">+ Add Student</button>
+        <table>
+          <thead><tr><th>Reg. No</th><th>Name</th><th>Action</th></tr></thead>
+          <tbody id="student-table"></tbody>
+        </table>
+        <button class="btn btn-primary btn-wide" type="button" id="btn-to-dash">Continue to Attendance</button>
+      </div>
+    </section>
+
+    <section id="screen-dash" class="screen hidden">
+      <div class="dash-head">
+        <div>
+          <div class="dept" id="dash-class">CLASS</div>
+          <h1>Attendance Dashboard</h1>
+          <p class="hint">All students are present by default — mark only absent students.</p>
+          <span class="vault"><i></i> Auto-saved · 6-month vault</span>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost" type="button" data-go="students">Add Students</button>
+          <button class="btn btn-ghost" type="button" data-go="class">Change Class</button>
+        </div>
+      </div>
+
+      <nav class="tabs">
+        <button class="tab active" type="button" data-tab="mark">Mark Absent</button>
+        <button class="tab" type="button" data-tab="lists">Present / Absent</button>
+        <button class="tab" type="button" data-tab="charts">Kid Analytics</button>
+        <button class="tab" type="button" data-tab="csv">CSV Data</button>
+      </nav>
+
+      <div id="tab-mark" class="panel">
+        <div class="row" style="justify-content:space-between;align-items:end">
+          <div>
+            <label class="field" for="mark-date">Date</label>
+            <input id="mark-date" type="date" />
+            <p class="hint" id="mark-date-label"></p>
+          </div>
+          <button class="btn btn-soft" type="button" id="btn-clear-absents">Clear All Absent (All Present)</button>
+        </div>
+        <div class="search-row">
+          <input id="mark-search" type="search" placeholder="Search name or register number" />
+        </div>
+        <div class="summary" id="mark-summary"></div>
+        <div class="student-list" id="mark-list"></div>
+      </div>
+
+      <div id="tab-lists" class="panel hidden">
+        <label class="field" for="list-date">Date</label>
+        <input id="list-date" type="date" style="max-width:240px" />
+        <div class="split" style="margin-top:14px">
+          <div class="col">
+            <h3>Present <span class="badge" id="present-count">0</span></h3>
+            <div id="present-col"></div>
+          </div>
+          <div class="col absent-col">
+            <h3>Absent <span class="badge" id="absent-count">0</span></h3>
+            <div id="absent-col"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-charts" class="panel hidden">
+        <div class="filters">
+          <div>
+            <label class="field" for="chart-student">Student</label>
+            <select id="chart-student"></select>
+          </div>
+          <div>
+            <label class="field" for="chart-from">From</label>
+            <input id="chart-from" type="date" />
+          </div>
+          <div>
+            <label class="field" for="chart-to">To</label>
+            <input id="chart-to" type="date" />
+          </div>
+          <div>
+            <label class="field" for="chart-type">Chart type</label>
+            <select id="chart-type">
+              <option value="pie">Pie Chart</option>
+              <option value="doughnut">Doughnut</option>
+              <option value="bar">Bar Graph</option>
+              <option value="line">Line Trend</option>
+              <option value="polarArea">Polar Area</option>
+              <option value="radar">Radar (weekdays)</option>
+            </select>
+          </div>
+          <button class="btn btn-ghost" type="button" id="btn-last7">Last 7 days</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><span>Present Days</span><strong id="st-present">0</strong></div>
+          <div class="stat alert"><span>Absent Days</span><strong id="st-absent">0</strong></div>
+          <div class="stat"><span>Total Days</span><strong id="st-total">0</strong></div>
+          <div class="stat"><span>Attendance %</span><strong id="st-pct">0%</strong></div>
+        </div>
+        <div class="chart-wrap">
+          <p class="hint" id="chart-title"></p>
+          <div class="chart-box"><canvas id="kid-chart"></canvas></div>
+          <div class="legend">
+            <span><i class="dot" style="background:#2aa3e0"></i>Present</span>
+            <span><i class="dot" style="background:#e45656"></i>Absent</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-csv" class="panel hidden">
+        <h2>CSV Data Storage</h2>
+        <p class="hint">Attendance is auto-saved in this browser. Close today and reopen in six months — classes, students, and absents in that window are still here. Download CSV as a backup when you change computers or hosts.</p>
+        <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat"><span>Classes</span><strong id="csv-classes">0</strong></div>
+          <div class="stat"><span>Students</span><strong id="csv-students">0</strong></div>
+          <div class="stat"><span>Absent records</span><strong id="csv-absents">0</strong></div>
+        </div>
+        <div class="row">
+          <button class="btn btn-primary" type="button" id="btn-download-csv">Download CSV</button>
+          <button class="btn btn-ghost" type="button" id="btn-import-csv">Import CSV</button>
+          <input id="csv-file" type="file" accept=".csv,text/csv" class="hidden" />
+        </div>
+      </div>
+    </section>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script>
+    const KEY = "ams_attendance_v2";
+    const LEGACY_KEY = "ams_attendance_v1";
+    const RETENTION_DAYS = 186;
+    const MAX_CLASSES = 10;
+    const DB_NAME = "ams_attendance_db_v2";
+    let state = loadLocal();
+    let chart;
+    hydrate();
+
+    function todayISO() {
+      const d = new Date();
+      const z = (n) => String(n).padStart(2, "0");
+      return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
+    }
+    function parseISO(s) {
+      const [y, m, d] = String(s || "").split("-").map(Number);
+      return new Date(y, (m || 1) - 1, d || 1);
+    }
+    function addDays(iso, n) {
+      const d = parseISO(iso);
+      d.setDate(d.getDate() + n);
+      const z = (x) => String(x).padStart(2, "0");
+      return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
+    }
+    function formatPretty(iso) {
+      return parseISO(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    function blank() {
+      return { version: 2, currentClass: "", classes: [], savedAt: 0 };
+    }
+    function prune(data) {
+      if (!data || !Array.isArray(data.classes)) return blank();
+      const cutoff = addDays(todayISO(), -RETENTION_DAYS);
+      data.classes.forEach((cls) => {
+        cls.students = cls.students || [];
+        cls.absences = (cls.absences || []).filter((a) => a && a.date >= cutoff);
+      });
+      if (data.classes.length > MAX_CLASSES) data.classes = data.classes.slice(0, MAX_CLASSES);
+      return data;
+    }
+    function loadLocal() {
+      try {
+        const raw = localStorage.getItem(KEY) || localStorage.getItem(LEGACY_KEY);
+        return prune(raw ? JSON.parse(raw) : blank());
+      } catch {
+        return blank();
+      }
+    }
+    function idbOpen() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+          if (!req.result.objectStoreNames.contains("kv")) req.result.createObjectStore("kv");
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    async function idbGet() {
+      try {
+        const db = await idbOpen();
+        return await new Promise((resolve, reject) => {
+          const r = db.transaction("kv", "readonly").objectStore("kv").get(KEY);
+          r.onsuccess = () => resolve(r.result || null);
+          r.onerror = () => reject(r.error);
+        });
+      } catch {
+        return null;
+      }
+    }
+    async function idbSet(data) {
+      try {
+        const db = await idbOpen();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction("kv", "readwrite");
+          tx.objectStore("kv").put(data, KEY);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch { /* localStorage still holds a copy */ }
+    }
+    async function hydrate() {
+      const stored = await idbGet();
+      if (stored && Array.isArray(stored.classes)) {
+        const remoteAt = stored.savedAt || 0;
+        const localAt = state.savedAt || 0;
+        const score = (d) => (d.classes || []).reduce((n, c) => n + (c.students || []).length + (c.absences || []).length, 0);
+        if (remoteAt > localAt || score(stored) > score(state)) state = prune(stored);
+      }
+      save(state);
+      renderClassScreen();
+    }
+    function save(data) {
+      state = prune(data || state);
+      state.savedAt = Date.now();
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* quota */ }
+      idbSet(state);
+    }
+    window.addEventListener("beforeunload", () => save());
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") save();
+    });
+    function cls() {
+      return state.classes.find((c) => c.name === state.currentClass);
+    }
+    function ensureClass(name) {
+      name = name.trim();
+      if (!name) return null;
+      let found = state.classes.find((c) => c.name.toLowerCase() === name.toLowerCase());
+      if (!found) {
+        if (state.classes.length >= MAX_CLASSES) {
+          toast("Maximum 10 classes. Open an existing class or remove one.");
+          return null;
+        }
+        found = { name, students: [], absences: [], createdAt: new Date().toISOString() };
+        state.classes.push(found);
+      }
+      state.currentClass = found.name;
+      save();
+      return found;
+    }
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.remove("hidden");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.add("hidden"), 2200);
+    }
+    function go(name) {
+      ["welcome", "class", "students", "dash"].forEach((id) => {
+        document.getElementById("screen-" + id).classList.toggle("hidden", id !== name);
+      });
+      if (name === "class") renderClassScreen();
+      if (name === "students") renderStudentScreen();
+      if (name === "dash") {
+        if (!cls() || !cls().students.length) {
+          toast("Add at least one student first.");
+          go("students");
+          return;
+        }
+        const t = todayISO();
+        const mark = document.getElementById("mark-date");
+        mark.value = mark.value || t;
+        document.getElementById("list-date").value = mark.value;
+        last7(true);
+        renderAll();
+      }
+    }
+    function renderClassScreen() {
+      const box = document.getElementById("saved-classes");
+      const n = state.classes.length;
+      document.getElementById("class-count-label").textContent = n + " / " + MAX_CLASSES + " classes saved on this device.";
+      if (!n) {
+        box.innerHTML = `<p class="hint">No classes yet. Create one below — it stays after you close the tab.</p>`;
+        return;
+      }
+      box.innerHTML = state.classes.map((c, i) => {
+        const on = state.currentClass === c.name ? " active" : "";
+        const safe = encodeURIComponent(c.name);
+        return `<div class="class-chip c${i % 10}${on}" style="animation-delay:${i * 0.06}s">
+          <button type="button" class="linkish pick-class" data-name="${safe}" style="flex:1;text-align:left;color:inherit;font:inherit">
+            ${escapeHtml(c.name)}
+            <div class="hint">${c.students.length} students · ${(c.absences || []).length} absents stored</div>
+          </button>
+          <button type="button" class="btn-danger del-class" data-name="${safe}">Remove</button>
+        </div>`;
+      }).join("");
+    }
+    function pickClass(enc) {
+      const name = decodeURIComponent(enc);
+      const found = state.classes.find((c) => c.name === name);
+      if (!found) return toast("Class not found.");
+      state.currentClass = found.name;
+      save();
+      go("students");
+    }
+    function deleteClass(enc) {
+      const name = decodeURIComponent(enc);
+      if (!confirm('Remove class "' + name + '" and its attendance vault?')) return;
+      state.classes = state.classes.filter((c) => c.name !== name);
+      if (state.currentClass === name) state.currentClass = state.classes[0] ? state.classes[0].name : "";
+      save();
+      renderClassScreen();
+      toast("Class removed.");
+    }
+    function createCustomClass() {
+      const made = ensureClass(document.getElementById("custom-class").value);
+      if (!made) {
+        if (!document.getElementById("custom-class").value.trim()) toast("Enter a class name.");
+        return;
+      }
+      document.getElementById("custom-class").value = "";
+      go("students");
+    }
+    function renderStudentScreen() {
+      const c = cls();
+      if (!c) { go("class"); return; }
+      document.getElementById("students-class-name").textContent = c.name;
+      document.getElementById("student-table").innerHTML = c.students.map((s) => `
+        <tr>
+          <td>${escapeHtml(s.reg)}</td>
+          <td>${escapeHtml(s.name)}</td>
+          <td><button class="btn-danger rm-stu" type="button" data-reg="${encodeURIComponent(s.reg)}">Remove</button></td>
+        </tr>`).join("") || `<tr><td colspan="3" class="hint">No students yet.</td></tr>`;
+    }
+    function addStudent() {
+      const c = cls();
+      if (!c) return;
+      const name = document.getElementById("stu-name").value.trim();
+      const reg = document.getElementById("stu-reg").value.trim();
+      if (!name || !reg) return toast("Name and register number are required.");
+      if (c.students.some((s) => s.reg.toLowerCase() === reg.toLowerCase())) {
+        return toast("Register number must be unique in this class.");
+      }
+      c.students.push({ name, reg, createdAt: new Date().toISOString() });
+      c.students.sort((a, b) => a.reg.localeCompare(b.reg, undefined, { numeric: true }));
+      document.getElementById("stu-name").value = "";
+      document.getElementById("stu-reg").value = "";
+      save();
+      renderStudentScreen();
+      toast("Student added.");
+    }
+    function removeStudent(enc) {
+      const c = cls();
+      const reg = decodeURIComponent(enc);
+      c.students = c.students.filter((s) => s.reg !== reg);
+      c.absences = c.absences.filter((a) => a.reg !== reg);
+      save();
+      renderStudentScreen();
+    }
+    function setTab(id) {
+      ["mark", "lists", "charts", "csv"].forEach((t) => {
+        document.getElementById("tab-" + t).classList.toggle("hidden", t !== id);
+        document.querySelector('.tab[data-tab="' + t + '"]').classList.toggle("active", t === id);
+      });
+      if (id === "charts") renderCharts();
+      if (id === "csv") renderCsvStats();
+    }
+    function syncDates(v) {
+      document.getElementById("mark-date").value = v;
+      document.getElementById("list-date").value = v;
+    }
+    function isAbsent(reg, date) {
+      const c = cls();
+      return !!c && c.absences.some((a) => a.reg === reg && a.date === date);
+    }
+    function toggleAbsent(reg) {
+      const c = cls();
+      const date = document.getElementById("mark-date").value || todayISO();
+      const i = c.absences.findIndex((a) => a.reg === reg && a.date === date);
+      if (i >= 0) c.absences.splice(i, 1);
+      else c.absences.push({ reg, date });
+      save();
+      renderAll();
+    }
+    function clearAbsents() {
+      const c = cls();
+      const date = document.getElementById("mark-date").value || todayISO();
+      c.absences = c.absences.filter((a) => a.date !== date);
+      save();
+      renderAll();
+      toast("Everyone is present for this date.");
+    }
+    function renderAll() {
+      const c = cls();
+      if (!c) return;
+      const date = document.getElementById("mark-date").value || todayISO();
+      document.getElementById("list-date").value = date;
+      document.getElementById("dash-class").textContent = c.name;
+      document.getElementById("mark-date-label").textContent = formatPretty(date);
+      const q = (document.getElementById("mark-search").value || "").trim().toLowerCase();
+      const shown = c.students.filter((s) => !q || s.name.toLowerCase().includes(q) || s.reg.toLowerCase().includes(q));
+      const abs = c.students.filter((s) => isAbsent(s.reg, date));
+      const pre = c.students.filter((s) => !isAbsent(s.reg, date));
+      document.getElementById("mark-summary").textContent =
+        pre.length + " present · " + abs.length + " absent · Tap a student to mark them absent.";
+      document.getElementById("mark-list").innerHTML = shown.map((s) => {
+        const gone = isAbsent(s.reg, date);
+        return `<article class="student-card${gone ? " absent" : ""}">
+          <div><div class="name">${escapeHtml(s.name)}</div><div class="reg">Reg: ${escapeHtml(s.reg)}</div></div>
+          <button class="pill ${gone ? "gone" : "present"} toggle-absent" type="button" data-reg="${encodeURIComponent(s.reg)}">${gone ? "ABSENT" : "PRESENT"}</button>
+        </article>`;
+      }).join("") || `<p class="hint">No matching students.</p>`;
+      document.getElementById("present-count").textContent = pre.length;
+      document.getElementById("absent-count").textContent = abs.length;
+      document.getElementById("present-col").innerHTML = pre.map((s) => `<div class="kid"><b>${escapeHtml(s.reg)}</b> ${escapeHtml(s.name)}</div>`).join("") || `<p class="hint">None</p>`;
+      document.getElementById("absent-col").innerHTML = abs.map((s) => `<div class="kid"><b>${escapeHtml(s.reg)}</b> ${escapeHtml(s.name)}</div>`).join("") || `<p class="hint">None</p>`;
+      renderCsvStats();
+      fillChartStudents();
+    }
+    function fillChartStudents() {
+      const c = cls();
+      const sel = document.getElementById("chart-student");
+      const cur = sel.value;
+      sel.innerHTML = c.students.map((s) => `<option value="${escapeHtml(s.reg)}">${escapeHtml(s.reg)} — ${escapeHtml(s.name)}</option>`).join("");
+      if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
+    }
+    function last7(silent) {
+      const to = document.getElementById("mark-date").value || todayISO();
+      document.getElementById("chart-to").value = to;
+      document.getElementById("chart-from").value = addDays(to, -6);
+      if (!silent) renderCharts();
+    }
+    function eachDate(from, to) {
+      const out = [];
+      let d = from;
+      while (d <= to) { out.push(d); d = addDays(d, 1); }
+      return out;
+    }
+    function renderCharts() {
+      const c = cls();
+      if (!c || !c.students.length) return;
+      fillChartStudents();
+      const reg = document.getElementById("chart-student").value || c.students[0].reg;
+      const from = document.getElementById("chart-from").value || addDays(todayISO(), -6);
+      const to = document.getElementById("chart-to").value || todayISO();
+      const type = document.getElementById("chart-type").value;
+      const days = eachDate(from, to);
+      const absentDays = days.filter((d) => isAbsent(reg, d));
+      const presentDays = days.filter((d) => !isAbsent(reg, d));
+      const pct = days.length ? Math.round((presentDays.length / days.length) * 100) : 0;
+      document.getElementById("st-present").textContent = presentDays.length;
+      document.getElementById("st-absent").textContent = absentDays.length;
+      document.getElementById("st-total").textContent = days.length;
+      document.getElementById("st-pct").textContent = pct + "%";
+      const stu = c.students.find((s) => s.reg === reg);
+      document.getElementById("chart-title").textContent = (stu ? stu.name : reg) + " — " + type.replace(/([A-Z])/g, " $1").toLowerCase();
+      const ctx = document.getElementById("kid-chart");
+      if (chart) chart.destroy();
+      const presentColor = "#2aa3e0";
+      const absentColor = "#e45656";
+      let data;
+      const options = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: type !== "line" && type !== "bar" } } };
+      if (type === "radar") {
+        const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const absW = [0,0,0,0,0,0,0];
+        const preW = [0,0,0,0,0,0,0];
+        days.forEach((d) => {
+          const w = parseISO(d).getDay();
+          if (isAbsent(reg, d)) absW[w]++; else preW[w]++;
+        });
+        data = {
+          labels,
+          datasets: [
+            { label: "Present", data: preW, backgroundColor: "rgba(42,163,224,.25)", borderColor: presentColor },
+            { label: "Absent", data: absW, backgroundColor: "rgba(228,86,86,.25)", borderColor: absentColor }
+          ]
+        };
+      } else if (type === "line" || type === "bar") {
+        data = {
+          labels: days.map((d) => d.slice(5)),
+          datasets: [{
+            label: "Present (1) / Absent (0)",
+            data: days.map((d) => isAbsent(reg, d) ? 0 : 1),
+            backgroundColor: days.map((d) => isAbsent(reg, d) ? absentColor : presentColor),
+            borderColor: presentColor,
+            tension: .3,
+            fill: type === "line"
+          }]
+        };
+        options.scales = { y: { min: 0, max: 1, ticks: { stepSize: 1, callback: (v) => v ? "Present" : "Absent" } } };
+      } else {
+        data = {
+          labels: ["Present: " + presentDays.length, "Absent: " + absentDays.length],
+          datasets: [{ data: [presentDays.length, absentDays.length], backgroundColor: [presentColor, absentColor], borderWidth: 0 }]
+        };
+      }
+      chart = new Chart(ctx, { type, data, options });
+    }
+    function csvEscape(v) {
+      const s = String(v ?? "");
+      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }
+    function toCsv() {
+      const rows = [["record_type", "class_name", "register_number", "student_name", "date", "status", "created_at"]];
+      state.classes.forEach((c) => {
+        rows.push(["class", c.name, "", "", "", "", c.createdAt || ""]);
+        c.students.forEach((s) => rows.push(["student", c.name, s.reg, s.name, "", "enrolled", s.createdAt || ""]));
+        c.absences.forEach((a) => {
+          const stu = c.students.find((s) => s.reg === a.reg);
+          rows.push(["absence", c.name, a.reg, stu ? stu.name : "", a.date, "absent", ""]);
+        });
+      });
+      return rows.map((r) => r.map(csvEscape).join(",")).join("\n");
+    }
+    function downloadCsv() {
+      const blob = new Blob([toCsv()], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "attendance-backup-" + todayISO() + ".csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast("CSV downloaded. Keep this file as a backup.");
+    }
+    function parseCsv(text) {
+      const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter(Boolean);
+      const rows = [];
+      for (const line of lines) {
+        const cols = [];
+        let cur = "", q = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (q) {
+            if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+            else if (ch === '"') q = false;
+            else cur += ch;
+          } else if (ch === '"') q = true;
+          else if (ch === ",") { cols.push(cur); cur = ""; }
+          else cur += ch;
+        }
+        cols.push(cur);
+        rows.push(cols);
+      }
+      return rows;
+    }
+    function importCsvText(text) {
+      const rows = parseCsv(String(text));
+      const header = rows.shift() || [];
+      const idx = Object.fromEntries(header.map((h, i) => [h.trim(), i]));
+      if (idx.record_type == null) throw new Error("Not a recognized attendance CSV.");
+      const next = blank();
+      const map = {};
+      const grab = (row, key) => row[idx[key]] || "";
+      rows.forEach((row) => {
+        const type = grab(row, "record_type");
+        const className = grab(row, "class_name");
+        if (!className) return;
+        if (!map[className]) {
+          map[className] = { name: className, students: [], absences: [], createdAt: "" };
+          next.classes.push(map[className]);
+        }
+        if (type === "class") map[className].createdAt = grab(row, "created_at");
+        if (type === "student") {
+          const reg = grab(row, "register_number");
+          const name = grab(row, "student_name");
+          if (reg && !map[className].students.some((s) => s.reg === reg)) {
+            map[className].students.push({ reg, name, createdAt: grab(row, "created_at") });
+          }
+        }
+        if (type === "absence") {
+          map[className].absences.push({ reg: grab(row, "register_number"), date: grab(row, "date") });
+        }
+      });
+      if (!next.classes.length) throw new Error("No class rows found.");
+      next.currentClass = state.currentClass && next.classes.some((c) => c.name === state.currentClass)
+        ? state.currentClass
+        : next.classes[0].name;
+      save(next);
+    }
+    function importCsv(ev) {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          importCsvText(reader.result);
+          toast("CSV imported. Six-month retention applied.");
+          renderAll();
+          renderStudentScreen();
+          renderClassScreen();
+        } catch (err) {
+          toast(err.message || "Could not import CSV.");
+        }
+        ev.target.value = "";
+      };
+      reader.readAsText(file);
+    }
+    function renderCsvStats() {
+      document.getElementById("csv-classes").textContent = state.classes.length;
+      document.getElementById("csv-students").textContent = state.classes.reduce((n, c) => n + c.students.length, 0);
+      document.getElementById("csv-absents").textContent = state.classes.reduce((n, c) => n + c.absences.length, 0);
+    }
+
+    document.getElementById("btn-start").onclick = () => go("class");
+    document.getElementById("btn-create-class").onclick = createCustomClass;
+    document.getElementById("btn-add-student").onclick = addStudent;
+    document.getElementById("btn-to-dash").onclick = () => {
+      if (!cls() || !cls().students.length) return toast("Add at least one student.");
+      go("dash");
+    };
+    document.getElementById("btn-clear-absents").onclick = clearAbsents;
+    document.getElementById("btn-last7").onclick = () => last7(false);
+    document.getElementById("btn-download-csv").onclick = downloadCsv;
+    document.getElementById("btn-import-csv").onclick = () => document.getElementById("csv-file").click();
+    document.getElementById("csv-file").onchange = importCsv;
+    document.getElementById("mark-date").onchange = () => { syncDates(document.getElementById("mark-date").value); renderAll(); };
+    document.getElementById("list-date").onchange = () => { syncDates(document.getElementById("list-date").value); renderAll(); };
+    document.getElementById("mark-search").oninput = renderAll;
+    document.getElementById("chart-student").onchange = renderCharts;
+    document.getElementById("chart-from").onchange = renderCharts;
+    document.getElementById("chart-to").onchange = renderCharts;
+    document.getElementById("chart-type").onchange = renderCharts;
+    document.querySelectorAll("[data-go]").forEach((btn) => {
+      btn.onclick = () => go(btn.getAttribute("data-go"));
+    });
+    document.querySelectorAll(".tab").forEach((btn) => {
+      btn.onclick = () => setTab(btn.getAttribute("data-tab"));
+    });
+    document.getElementById("saved-classes").addEventListener("click", (e) => {
+      const pick = e.target.closest(".pick-class");
+      const del = e.target.closest(".del-class");
+      if (pick) pickClass(pick.getAttribute("data-name"));
+      if (del) deleteClass(del.getAttribute("data-name"));
+    });
+    document.getElementById("student-table").addEventListener("click", (e) => {
+      const btn = e.target.closest(".rm-stu");
+      if (btn) removeStudent(btn.getAttribute("data-reg"));
+    });
+    document.getElementById("mark-list").addEventListener("click", (e) => {
+      const btn = e.target.closest(".toggle-absent");
+      if (btn) toggleAbsent(decodeURIComponent(btn.getAttribute("data-reg")));
+    });
+    document.getElementById("stu-name").addEventListener("keydown", (e) => { if (e.key === "Enter") addStudent(); });
+    document.getElementById("stu-reg").addEventListener("keydown", (e) => { if (e.key === "Enter") addStudent(); });
+    document.getElementById("custom-class").addEventListener("keydown", (e) => { if (e.key === "Enter") createCustomClass(); });
+    renderClassScreen();
+  </script>
+</body>
+</html>

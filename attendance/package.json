@@ -1,0 +1,8 @@
+{
+  "name": "attendance-dashboard",
+  "private": true,
+  "description": "Standalone Attendance Maintenance System (static)",
+  "scripts": {
+    "start": "python3 -m http.server 5500"
+  }
+}
