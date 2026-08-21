@@ -1,34 +1,56 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { formatTime } from "../utils/format";
+import { Icon, initials } from "../components/Icons";
+import BrandMark from "../components/BrandMark";
 
-const links = [
-  { to: "/app/dashboard", label: "Dashboard", ico: "▣" },
-  { to: "/app/classes", label: "Classes", ico: "▤" },
-  { to: "/app/attendance", label: "Attendance", ico: "✓" },
-  { to: "/app/tests", label: "Tests & Marks", ico: "✎" },
-  { to: "/app/reports", label: "Reports", ico: "▦" },
-  { to: "/app/import", label: "Import Image", ico: "⤒" },
-  { to: "/app/profile", label: "Staff Profile", ico: "☺" },
-  { to: "/app/settings", label: "Settings", ico: "⚙" },
-  { to: "/app/contact", label: "Contact Us", ico: "✉" },
-  { to: "/app/about", label: "About Us", ico: "ℹ" },
+const mainLinks = [
+  { to: "/app/dashboard", label: "Dashboard", icon: "dashboard" },
+  { to: "/app/classes", label: "Classes", icon: "classes" },
+  { to: "/app/attendance", label: "Attendance", icon: "attendance" },
+  { to: "/app/tests", label: "Tests & Marks", icon: "tests" },
+  { to: "/app/reports", label: "Reports", icon: "reports" },
 ];
+const accountLinks = [
+  { to: "/app/staff", label: "Staff Profile", icon: "staff" },
+  { to: "/app/settings", label: "Settings", icon: "settings" },
+];
+const infoLinks = [
+  { to: "/app/contact", label: "Contact Us", icon: "contact" },
+  { to: "/app/about", label: "About Us", icon: "about" },
+];
+
+function NavGroup({ title, links, collapsed, onNavigate }) {
+  return (
+    <div className="nav-section">
+      {!collapsed && <div className="nav-label">{title}</div>}
+      {links.map((l) => (
+        <NavLink
+          key={l.to}
+          to={l.to}
+          className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+          onClick={onNavigate}
+          title={collapsed ? l.label : undefined}
+        >
+          <span className="nav-ico">
+            <Icon name={l.icon} />
+          </span>
+          {!collapsed && l.label}
+        </NavLink>
+      ))}
+    </div>
+  );
+}
 
 export default function Sidebar({ open, collapsed, onNavigate }) {
   const { user, loginTime, logout, settings } = useAuth();
   const navigate = useNavigate();
-  const initials = (user?.fullName || "S")
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const photo = user?.profilePicture;
 
   return (
-    <aside className={`sidebar ${open ? "open" : ""} ${collapsed ? "is-collapsed" : ""}`}>
+    <aside className={`sidebar ${open ? "open" : ""} ${collapsed ? "is-collapsed" : ""}`} aria-label="Main navigation">
       <div className="brand">
-        <img src="/assets/logo-placeholder.svg" alt="YOUR LOGO" />
+        <BrandMark kind="app" name="APP LOGO" />
         {!collapsed && (
           <div>
             <h1>{settings?.appName || "Aadhya : attendance tracker"}</h1>
@@ -36,34 +58,24 @@ export default function Sidebar({ open, collapsed, onNavigate }) {
           </div>
         )}
       </div>
-      <div className="nav-section">
-        <div className="nav-label">Menu</div>
-        {links.slice(0, 6).map((l) => (
-          <NavLink key={l.to} to={l.to} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} onClick={onNavigate}>
-            <span className="nav-ico">{l.ico}</span>
-            {!collapsed && l.label}
-          </NavLink>
-        ))}
-        <div className="nav-label">Account</div>
-        {links.slice(6).map((l) => (
-          <NavLink key={l.to} to={l.to} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} onClick={onNavigate}>
-            <span className="nav-ico">{l.ico}</span>
-            {!collapsed && l.label}
-          </NavLink>
-        ))}
-      </div>
+      <nav>
+        <NavGroup title="Main" links={mainLinks} collapsed={collapsed} onNavigate={onNavigate} />
+        <NavGroup title="Account" links={accountLinks} collapsed={collapsed} onNavigate={onNavigate} />
+        <NavGroup title="Information" links={infoLinks} collapsed={collapsed} onNavigate={onNavigate} />
+      </nav>
       <div className="sidebar-foot">
         <div className="staff-card">
-          {user?.profilePicture ? (
-            <img className="avatar" src={user.profilePicture} alt="" />
+          {photo ? (
+            <img className="avatar" src={photo} alt="" />
           ) : (
-            <div className="avatar">{initials}</div>
+            <div className="avatar" aria-hidden="true">{initials(user?.fullName)}</div>
           )}
           {!collapsed && (
             <div className="staff-meta">
-              <strong>{user?.fullName}</strong>
-              ID {user?.staffId}
-              <div>Logged in: {formatTime(loginTime)}</div>
+              <strong>{user?.fullName || "Staff member"}</strong>
+              Staff ID: {user?.staffId || "—"}
+              <div>Logged in</div>
+              <div>{formatTime(loginTime)}</div>
             </div>
           )}
         </div>
@@ -75,13 +87,9 @@ export default function Sidebar({ open, collapsed, onNavigate }) {
             navigate("/auth", { replace: true });
           }}
         >
-          Logout
+          <Icon name="logout" size={16} />
+          {!collapsed && "Logout"}
         </button>
-        {!collapsed && (
-          <p className="muted" style={{ fontSize: 11, marginTop: 12 }}>
-            Developed by DHANUSH V C &amp; DINESH DURGAPPA
-          </p>
-        )}
       </div>
     </aside>
   );

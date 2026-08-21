@@ -191,6 +191,14 @@ describe("auth flow", async () => {
     });
     assert.equal(ok.status, 200);
     assert.equal(ok.data.user.onboardingComplete, true);
+    const dash = await request("/api/dashboard", { authed: true });
+    assert.equal(dash.status, 200);
+    assert.equal(dash.data.stats.totalClasses, 0);
+    assert.equal(dash.data.stats.totalStudents, 0);
+    assert.equal(dash.data.hasClasses, false);
+    assert.equal(dash.data.hasAttendance, false);
+    assert.equal(Array.isArray(dash.data.lowAttendance), true);
+    assert.equal(dash.data.stats.overallAttendance, null);
   });
 
   it("logs out and blocks protected routes", async () => {

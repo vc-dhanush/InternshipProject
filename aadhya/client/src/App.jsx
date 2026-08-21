@@ -8,18 +8,11 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
-import Classes from "./pages/Classes";
-import ClassDetail from "./pages/ClassDetail";
-import Attendance from "./pages/Attendance";
-import { AttendanceHistory, AttendanceSession } from "./pages/AttendanceHistory";
-import Reports from "./pages/Reports";
-import Tests, { TestDetail } from "./pages/Tests";
-import StudentProfile from "./pages/StudentProfile";
+import StagePlaceholder from "./pages/StagePlaceholder";
 import StaffProfile from "./pages/StaffProfile";
 import Settings from "./pages/Settings";
 import Contact from "./pages/Contact";
 import About from "./pages/About";
-import ImportAttendance from "./pages/ImportAttendance";
 
 export default function App() {
   return (
@@ -42,16 +35,10 @@ export default function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="onboarding" element={<Onboarding />} />
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="classes" element={<Classes />} />
-            <Route path="classes/:id" element={<ClassDetail />} />
-            <Route path="students/:id" element={<StudentProfile />} />
-            <Route path="attendance" element={<Attendance />} />
-            <Route path="history" element={<AttendanceHistory />} />
-            <Route path="history/:id" element={<AttendanceSession />} />
-            <Route path="tests" element={<Tests />} />
-            <Route path="tests/:id" element={<TestDetail />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="import" element={<ImportAttendance />} />
+            <Route path="classes" element={<StagePlaceholder title="Classes" text="Class management will be available here." />} />
+            <Route path="attendance" element={<StagePlaceholder title="Attendance" text="Attendance marking will be available here." />} />
+            <Route path="tests" element={<StagePlaceholder title="Tests & Marks" text="Tests and marks will be available here." />} />
+            <Route path="reports" element={<StagePlaceholder title="Reports" text="Attendance and academic reports will be available here." />} />
             <Route path="profile" element={<StaffProfile />} />
             <Route path="staff" element={<StaffProfile />} />
             <Route path="settings" element={<Settings />} />
