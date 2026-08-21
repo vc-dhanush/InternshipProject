@@ -1,6 +1,8 @@
-# Attendance Maintenance System
+# Attendance Maintenance System (legacy static prototype)
 
-Standalone sky-blue attendance app. It is **not** part of Skill-Exchange and should be hosted as its **own** static site.
+The full MERN rebuild lives in **`/aadhya`** (`Aadhya : attendance tracker`). Use that project for authentication, MongoDB, classes, tests, reports, and OCR import.
+
+This folder remains the earlier standalone sky-blue attendance app. It is **not** part of Skill-Exchange and should be hosted as its **own** static site if you still need it.
 
 ## What it does
 
