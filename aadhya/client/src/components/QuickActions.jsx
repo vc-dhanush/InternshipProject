@@ -3,7 +3,7 @@ import { Icon } from "./Icons";
 
 const actions = [
   { to: "/app/attendance", label: "Take attendance", icon: "attendance" },
-  { to: "/app/classes", label: "Add class", icon: "classes" },
+  { to: "/app/classes?new=1", label: "Add class", icon: "classes" },
   { to: "/app/classes", label: "Add student", icon: "students" },
   { to: "/app/tests", label: "Create test", icon: "tests" },
 ];

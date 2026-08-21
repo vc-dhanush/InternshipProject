@@ -8,6 +8,9 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
+import Classes from "./pages/Classes";
+import ClassDetail from "./pages/ClassDetail";
+import StudentProfile from "./pages/StudentProfile";
 import StagePlaceholder from "./pages/StagePlaceholder";
 import StaffProfile from "./pages/StaffProfile";
 import Settings from "./pages/Settings";
@@ -35,7 +38,9 @@ export default function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="onboarding" element={<Onboarding />} />
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="classes" element={<StagePlaceholder title="Classes" text="Class management will be available here." />} />
+            <Route path="classes" element={<Classes />} />
+            <Route path="classes/:classId" element={<ClassDetail />} />
+            <Route path="students/:studentId" element={<StudentProfile />} />
             <Route path="attendance" element={<StagePlaceholder title="Attendance" text="Attendance marking will be available here." />} />
             <Route path="tests" element={<StagePlaceholder title="Tests & Marks" text="Tests and marks will be available here." />} />
             <Route path="reports" element={<StagePlaceholder title="Reports" text="Attendance and academic reports will be available here." />} />

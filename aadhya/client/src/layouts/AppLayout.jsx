@@ -7,6 +7,7 @@ import Sidebar from "./Sidebar";
 const titles = {
   "/app/dashboard": "Dashboard",
   "/app/classes": "Classes",
+  "/app/students": "Student profile",
   "/app/attendance": "Attendance",
   "/app/tests": "Tests & Marks",
   "/app/reports": "Reports",

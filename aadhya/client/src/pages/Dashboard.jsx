@@ -114,7 +114,7 @@ export default function Dashboard() {
           title="Your dashboard is ready."
           text="Create your first class to start managing students and attendance."
           action={
-            <Link className="btn" to="/app/classes">
+            <Link className="btn" to="/app/classes?new=1">
               Create class
             </Link>
           }

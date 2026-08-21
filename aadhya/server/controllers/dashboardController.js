@@ -18,8 +18,8 @@ async function getDashboard(req, res, next) {
     const threshold = settings?.minAttendancePercent ?? 75;
 
     const [classes, students, sessions, tests, marks, records] = await Promise.all([
-      ClassModel.find({ user: userId }).sort({ createdAt: -1 }).lean(),
-      Student.find({ user: userId }).select("name class rollNo studentId createdAt").lean(),
+      ClassModel.find({ user: userId, archived: { $ne: true } }).sort({ createdAt: -1 }).lean(),
+      Student.find({ user: userId, archived: { $ne: true } }).select("name class rollNo studentId createdAt").lean(),
       AttendanceSession.find({ user: userId }).sort({ date: 1, createdAt: 1 }).lean(),
       Test.find({ user: userId }).sort({ createdAt: -1 }).select("name subject createdAt class").lean(),
       Mark.find({ user: userId }).populate("test", "totalMarks").lean(),

@@ -21,17 +21,33 @@ export function EmptyState({ title, text, action }) {
 
 export function Modal({ title, children, onClose }) {
   return (
-    <div className="modal-back" onClick={onClose}>
+    <div className="modal-back" onClick={onClose || undefined}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ margin: 0 }}>{title}</h3>
-          <button className="btn ghost" onClick={onClose} type="button">
+          <button className="btn ghost" onClick={onClose} type="button" disabled={!onClose}>
             Close
           </button>
         </div>
         <div style={{ marginTop: 14 }}>{children}</div>
       </div>
     </div>
+  );
+}
+
+export function ConfirmDialog({ title, text, confirmLabel = "Confirm", danger, busy, onConfirm, onClose }) {
+  return (
+    <Modal title={title} onClose={busy ? undefined : onClose}>
+      <p>{text}</p>
+      <div className="row-actions">
+        <button className="btn secondary" type="button" disabled={busy} onClick={onClose}>
+          Cancel
+        </button>
+        <button className={`btn ${danger ? "danger" : ""}`} type="button" disabled={busy} onClick={onConfirm}>
+          {busy ? <Spinner label="Working…" /> : confirmLabel}
+        </button>
+      </div>
+    </Modal>
   );
 }
 

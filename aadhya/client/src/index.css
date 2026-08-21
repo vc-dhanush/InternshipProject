@@ -417,7 +417,17 @@ tr:hover td { background: #fafafe; }
   position: fixed; inset: 0; background: rgba(15,23,42,.45);
   display: grid; place-items: center; z-index: 50; padding: 16px;
 }
-.modal { background: #fff; border-radius: 18px; padding: 20px; width: min(520px, 100%); box-shadow: var(--shadow); }
+.modal { background: var(--surface); border-radius: 18px; padding: 20px; width: min(520px, 100%); box-shadow: var(--shadow); max-height: min(88vh, 720px); overflow: auto; }
+.class-manage-card { padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+.card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.student-list { display: flex; flex-direction: column; gap: 10px; }
+.student-row { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; padding: 14px; align-items: center; }
+.student-row .badge { margin-left: 8px; }
+.class-stat-row { margin-bottom: 16px; }
+@media (max-width: 860px) {
+  .student-row { grid-template-columns: auto 1fr; }
+  .student-row .card-actions { grid-column: 1 / -1; }
+}
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .span-2 { grid-column: span 2; }
 .row-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }

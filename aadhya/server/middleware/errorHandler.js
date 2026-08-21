@@ -27,6 +27,10 @@ function errorHandler(err, _req, res, _next) {
     });
   }
 
+  if (err.name === "CastError") {
+    return res.status(404).json({ message: "The requested record was not found." });
+  }
+
   if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
     return res.status(401).json({ message: "Your session has expired. Please sign in again." });
   }

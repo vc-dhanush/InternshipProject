@@ -11,7 +11,7 @@ export default function ClassSummary({ classes }) {
       <ul className="class-summary-list">
         {classes.map((cls) => (
           <li key={cls.id}>
-            <Link to="/app/classes" className="class-summary-row">
+            <Link to={`/app/classes/${cls.id}`} className="class-summary-row">
               <div>
                 <strong>{cls.name}{cls.section ? ` · ${cls.section}` : ""}</strong>
                 <p className="meta">{cls.subject || "No subject"}</p>
