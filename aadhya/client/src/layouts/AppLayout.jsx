@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { Spinner } from "../components/ui";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
@@ -20,19 +19,11 @@ const titles = {
 };
 
 export default function AppLayout() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const loc = useLocation();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  if (loading) {
-    return (
-      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
-        <Spinner label="Loading workspace…" />
-      </div>
-    );
-  }
-  if (!user) return <Navigate to="/auth" replace />;
   if (!user.onboardingComplete && loc.pathname !== "/app/onboarding") {
     return <Navigate to="/app/onboarding" replace />;
   }

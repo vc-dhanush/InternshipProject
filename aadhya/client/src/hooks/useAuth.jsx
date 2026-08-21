@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import api from "../services/api";
+import api, { setUnauthorizedHandler } from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -10,23 +10,20 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   async function refresh() {
-    const token = localStorage.getItem("aadhya_token");
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
     try {
-      const [{ data: me }, { data: st }] = await Promise.all([
-        api.get("/auth/me"),
-        api.get("/settings"),
-      ]);
+      const { data: me } = await api.get("/auth/me");
       setUser(me.user);
       setLoginTime(me.loginTime);
-      setSettings(st.settings);
+      try {
+        const { data: st } = await api.get("/settings");
+        setSettings(st.settings);
+      } catch {
+        setSettings(null);
+      }
     } catch {
-      localStorage.removeItem("aadhya_token");
       setUser(null);
+      setSettings(null);
+      setLoginTime(null);
     } finally {
       setLoading(false);
     }
@@ -34,6 +31,20 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     refresh();
+    const onPageShow = (event) => {
+      if (event.persisted) refresh();
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setUser(null);
+      setSettings(null);
+      setLoginTime(null);
+    });
+    return () => setUnauthorizedHandler(null);
   }, []);
 
   const value = useMemo(
@@ -42,30 +53,31 @@ export function AuthProvider({ children }) {
       settings,
       loginTime,
       loading,
+      authenticated: Boolean(user),
       setUser,
       setSettings,
       setLoginTime,
       refresh,
       async applyAuth(payload) {
-        localStorage.setItem("aadhya_token", payload.token);
         setUser(payload.user);
         setLoginTime(payload.loginTime);
+        setLoading(false);
         try {
           const { data } = await api.get("/settings");
           setSettings(data.settings);
         } catch {
-          /* first login still ok */
+          setSettings(null);
         }
       },
       async logout() {
         try {
           await api.post("/auth/logout");
         } catch {
-          /* ignore */
+          /* cookie may already be gone */
         }
-        localStorage.removeItem("aadhya_token");
         setUser(null);
         setSettings(null);
+        setLoginTime(null);
       },
     }),
     [user, settings, loginTime, loading]

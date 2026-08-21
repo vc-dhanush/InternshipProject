@@ -265,7 +265,10 @@ tr:hover td { background: #fafafe; }
   display: flex; align-items: center; justify-content: center;
   padding: 32px 24px;
 }
-.auth-card { width: min(420px, 100%); }
+.auth-brand-row { display: flex; align-items: center; gap: 10px; }
+.auth-foot { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 18px; font-size: 13px; }
+.auth-foot a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.auth-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin: 4px 0 14px; }
 .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
 .tabs button {
   border: 0; background: #f1f5f9; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600;

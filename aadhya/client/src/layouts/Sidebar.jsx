@@ -72,7 +72,7 @@ export default function Sidebar({ open, collapsed, onNavigate }) {
           type="button"
           onClick={async () => {
             await logout();
-            navigate("/auth");
+            navigate("/auth", { replace: true });
           }}
         >
           Logout

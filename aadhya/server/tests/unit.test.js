@@ -15,6 +15,13 @@ describe("validators", () => {
     assert.equal(isGmail("not-an-email"), false);
   });
 
+  it("validates staff IDs", () => {
+    const { isValidStaffId } = require("../utils/validators");
+    assert.equal(isValidStaffId("ADH-1042"), true);
+    assert.equal(isValidStaffId("ab"), false);
+    assert.equal(isValidStaffId(""), false);
+  });
+
   it("enforces password rules", () => {
     assert.equal(isStrongPassword("Short1!"), false);
     assert.equal(isStrongPassword("password1!"), false);

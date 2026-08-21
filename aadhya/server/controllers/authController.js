@@ -1,7 +1,6 @@
 const env = require("../config/env");
-const CollegeSettings = require("../models/CollegeSettings");
 const User = require("../models/User");
-const { sendPasswordResetEmail } = require("../services/emailService");
+const { sendPasswordResetEmail, canSendMail } = require("../services/emailService");
 const { HttpError } = require("../utils/httpError");
 const {
   comparePassword,
@@ -9,26 +8,44 @@ const {
   isStrongPassword,
   getPasswordIssues,
 } = require("../utils/password");
-const {
-  createResetToken,
-  generateStaffId,
-  hashResetToken,
-  signAuthToken,
-} = require("../utils/tokens");
-const { isGmail, normalizeEmail } = require("../utils/validators");
+const { createResetToken, hashResetToken, signAuthToken } = require("../utils/tokens");
+const { isGmail, isValidStaffId, normalizeEmail, normalizeStaffId } = require("../utils/validators");
 
-function setAuthCookie(res, token) {
-  res.cookie("token", token, {
+const COOKIE_NAME = "token";
+const LOGIN_ERROR = "Invalid email or password";
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+function cookieOptions(rememberMe) {
+  const options = {
     httpOnly: true,
     sameSite: "lax",
     secure: env.nodeEnv === "production",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
+  };
+  if (rememberMe !== false) options.maxAge = WEEK_MS;
+  return options;
+}
+
+function setAuthCookie(res, token, rememberMe) {
+  res.cookie(COOKIE_NAME, token, cookieOptions(rememberMe));
+}
+
+function clearAuthCookie(res) {
+  res.clearCookie(COOKIE_NAME, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: env.nodeEnv === "production",
+    path: "/",
   });
+}
+
+function publicUser(user) {
+  return user.toSafeJSON();
 }
 
 async function signup(req, res, next) {
   try {
-    const { fullName, email, password, confirmPassword } = req.body || {};
+    const { fullName, email, password, confirmPassword, staffId } = req.body || {};
     if (!fullName || !String(fullName).trim()) {
       throw new HttpError(400, "Full name is required.");
     }
@@ -37,30 +54,38 @@ async function signup(req, res, next) {
     if (!isGmail(normalized)) {
       throw new HttpError(400, "Please use a valid Gmail address ending with @gmail.com.");
     }
+    const staff = normalizeStaffId(staffId);
+    if (!staff) throw new HttpError(400, "Staff ID is required.");
+    if (!isValidStaffId(staff)) {
+      throw new HttpError(400, "Staff ID must be 3–32 characters and use letters, numbers, dots, underscores, or hyphens.");
+    }
     if (password !== confirmPassword) {
       throw new HttpError(400, "Password and confirm password do not match.");
     }
     if (!isStrongPassword(password)) {
       throw new HttpError(400, "Password does not meet the security requirements.", getPasswordIssues(password));
     }
-    const exists = await User.findOne({ email: normalized });
-    if (exists) throw new HttpError(409, "An account with this email already exists.");
+
+    const emailTaken = await User.findOne({ email: normalized });
+    if (emailTaken) throw new HttpError(409, "An account with this email already exists.");
+    const staffTaken = await User.findOne({ staffId: staff });
+    if (staffTaken) throw new HttpError(409, "This Staff ID is already in use.");
 
     const user = await User.create({
       fullName: String(fullName).trim(),
       email: normalized,
+      staffId: staff,
       passwordHash: await hashPassword(password),
-      staffId: generateStaffId(),
+      onboardingComplete: false,
     });
-    await CollegeSettings.create({ user: user._id });
     const token = signAuthToken(user._id);
     user.lastLoginAt = new Date();
     await user.save();
-    setAuthCookie(res, token);
+    setAuthCookie(res, token, true);
     res.status(201).json({
-      token,
-      user: user.toSafeJSON(),
+      user: publicUser(user),
       loginTime: user.lastLoginAt,
+      needsCollegeSetup: true,
     });
   } catch (err) {
     next(err);
@@ -69,58 +94,81 @@ async function signup(req, res, next) {
 
 async function login(req, res, next) {
   try {
-    const { email, password } = req.body || {};
+    const { email, password, rememberMe } = req.body || {};
     const normalized = normalizeEmail(email);
     if (!normalized || !password) {
       throw new HttpError(400, "Email and password are required.");
     }
-    if (!isGmail(normalized)) {
-      throw new HttpError(400, "Please use a valid Gmail address ending with @gmail.com.");
-    }
     const user = await User.findOne({ email: normalized }).select("+passwordHash");
-    if (!user) throw new HttpError(401, "Incorrect email or password.");
+    if (!user) throw new HttpError(401, LOGIN_ERROR);
     const ok = await comparePassword(password, user.passwordHash);
-    if (!ok) throw new HttpError(401, "Incorrect email or password.");
+    if (!ok) throw new HttpError(401, LOGIN_ERROR);
     user.lastLoginAt = new Date();
     await user.save();
     const token = signAuthToken(user._id);
-    setAuthCookie(res, token);
-    res.json({ token, user: user.toSafeJSON(), loginTime: user.lastLoginAt });
+    setAuthCookie(res, token, rememberMe !== false);
+    const safe = publicUser(user);
+    res.json({
+      user: safe,
+      loginTime: user.lastLoginAt,
+      needsCollegeSetup: !user.onboardingComplete,
+    });
   } catch (err) {
     next(err);
   }
 }
 
 async function me(req, res) {
-  res.json({ user: req.user.toSafeJSON(), loginTime: req.user.lastLoginAt });
+  res.json({
+    user: publicUser(req.user),
+    loginTime: req.user.lastLoginAt,
+    needsCollegeSetup: !req.user.onboardingComplete,
+  });
 }
 
 async function logout(_req, res) {
-  res.clearCookie("token");
+  clearAuthCookie(res);
   res.json({ message: "Signed out." });
 }
 
 async function forgotPassword(req, res, next) {
   try {
     const normalized = normalizeEmail(req.body?.email);
+    if (!normalized) throw new HttpError(400, "Email is required.");
     if (!isGmail(normalized)) {
       throw new HttpError(400, "Please use a valid Gmail address ending with @gmail.com.");
     }
+
     const user = await User.findOne({ email: normalized });
+    const emailConfigured = canSendMail();
     const payload = {
-      message: "If that account exists, a password reset link has been sent.",
+      emailConfigured,
+      developmentMode: !emailConfigured,
     };
-    if (user) {
-      const { token, hash } = createResetToken();
-      user.resetTokenHash = hash;
-      user.resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000);
-      await user.save();
-      const resetUrl = `${env.clientUrl}/reset-password?token=${token}`;
-      const result = await sendPasswordResetEmail(user.email, resetUrl);
-      if (!result.sent && env.nodeEnv !== "production") {
-        payload.devResetUrl = resetUrl;
-      }
+
+    if (!user) {
+      payload.message = emailConfigured
+        ? "If that account exists, a password reset email has been sent."
+        : "Email delivery is not configured (development mode). If this Gmail has an account, a reset link is written to the server log — it is not sent by email.";
+      return res.json(payload);
     }
+
+    const { token, hash } = createResetToken();
+    user.resetTokenHash = hash;
+    user.resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000);
+    await user.save();
+    const resetUrl = `${env.clientUrl}/reset-password/${token}`;
+
+    if (!emailConfigured) {
+      console.log(`[email] EMAIL_USER / EMAIL_PASSWORD are not set. Development reset link for ${user.email}: ${resetUrl}`);
+      payload.message =
+        "Email delivery is not configured (development mode). A reset email was not sent. Use the development reset link below if you requested this for a real account.";
+      if (env.nodeEnv !== "production") payload.developmentResetUrl = resetUrl;
+      return res.json(payload);
+    }
+
+    await sendPasswordResetEmail(user.email, resetUrl);
+    payload.message = "If that account exists, a password reset email has been sent.";
     res.json(payload);
   } catch (err) {
     next(err);
@@ -129,7 +177,8 @@ async function forgotPassword(req, res, next) {
 
 async function resetPassword(req, res, next) {
   try {
-    const { token, password, confirmPassword } = req.body || {};
+    const token = req.body?.token || req.params?.token;
+    const { password, confirmPassword } = req.body || {};
     if (!token) throw new HttpError(400, "Reset token is missing.");
     if (password !== confirmPassword) {
       throw new HttpError(400, "Password and confirm password do not match.");
@@ -147,6 +196,7 @@ async function resetPassword(req, res, next) {
     user.resetTokenHash = undefined;
     user.resetTokenExpires = undefined;
     await user.save();
+    clearAuthCookie(res);
     res.json({ message: "Password updated. You can sign in with your new password." });
   } catch (err) {
     next(err);

@@ -1,14 +1,15 @@
 const CollegeSettings = require("../models/CollegeSettings");
-const User = require("../models/User");
 const { publicFileUrl } = require("../middleware/upload");
 const { isGmail, normalizeEmail } = require("../utils/validators");
 const { HttpError } = require("../utils/httpError");
 
 async function getSettings(req, res, next) {
   try {
-    let settings = await CollegeSettings.findOne({ user: req.user._id });
-    if (!settings) settings = await CollegeSettings.create({ user: req.user._id });
-    res.json({ settings });
+    const settings = await CollegeSettings.findOne({ user: req.user._id });
+    res.json({
+      settings: settings || null,
+      needsCollegeSetup: !req.user.onboardingComplete || !settings,
+    });
   } catch (err) {
     next(err);
   }
@@ -50,7 +51,9 @@ async function completeOnboarding(req, res, next) {
   try {
     let settings = await CollegeSettings.findOne({ user: req.user._id });
     if (!settings) settings = await CollegeSettings.create({ user: req.user._id });
-    settings.collegeName = req.body.collegeName || settings.collegeName;
+    const collegeName = String(req.body.collegeName || "").trim();
+    if (!collegeName) throw new HttpError(400, "College name is required.");
+    settings.collegeName = collegeName;
     settings.collegeAddress = req.body.collegeAddress || "";
     if (req.file) settings.collegeLogo = publicFileUrl(req, req.file.path);
     await settings.save();

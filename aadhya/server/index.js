@@ -36,14 +36,23 @@ function createApp() {
   app.use(express.json({ limit: "2mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
-  app.use(
-    "/api/auth/login",
-    rateLimit({ windowMs: 15 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false })
-  );
-  app.use(
-    "/api/auth/signup",
-    rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false })
-  );
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      res.setHeader("Cache-Control", "no-store");
+    }
+    next();
+  });
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many attempts. Please wait and try again." },
+  });
+  app.use("/api/auth/login", authLimiter);
+  app.use("/api/auth/signup", authLimiter);
+  app.use("/api/auth/forgot-password", authLimiter);
+  app.use("/api/auth/reset-password", authLimiter);
 
   ensureDir(env.uploadDir);
   app.use("/uploads", express.static(env.uploadDir));

@@ -2,13 +2,13 @@ const nodemailer = require("nodemailer");
 const env = require("../config/env");
 
 function canSendMail() {
-  return Boolean(env.emailHost && env.emailUser && env.emailPassword);
+  return Boolean(env.emailUser && env.emailPassword);
 }
 
 function getTransport() {
   if (!canSendMail()) return null;
   return nodemailer.createTransport({
-    host: env.emailHost,
+    host: env.emailHost || "smtp.gmail.com",
     port: env.emailPort,
     secure: env.emailPort === 465,
     auth: {
@@ -25,8 +25,9 @@ async function sendPasswordResetEmail(to, resetUrl) {
 
   const transport = getTransport();
   if (!transport) {
-    console.log(`[email] EMAIL is not configured. Password reset link for ${to}: ${resetUrl}`);
-    return { sent: false, resetUrl };
+    const error = new Error("Email is not configured.");
+    error.code = "EMAIL_NOT_CONFIGURED";
+    throw error;
   }
 
   await transport.sendMail({

@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { Spinner } from "../components/ui";
 
 export default function Onboarding() {
-  const { refresh } = useAuth();
+  const { user, refresh } = useAuth();
   const nav = useNavigate();
   const [collegeName, setName] = useState("");
   const [collegeAddress, setAddress] = useState("");
@@ -13,18 +13,27 @@ export default function Onboarding() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  if (user?.onboardingComplete) {
+    return <Navigate to="/app/dashboard" replace />;
+  }
+
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
     setError("");
+    if (!collegeName.trim()) {
+      setError("College name is required.");
+      setBusy(false);
+      return;
+    }
     try {
       const fd = new FormData();
-      fd.append("collegeName", collegeName || "YOUR COLLEGE NAME");
+      fd.append("collegeName", collegeName.trim());
       fd.append("collegeAddress", collegeAddress);
       if (file) fd.append("logo", file);
       await api.post("/onboarding", fd);
       await refresh();
-      nav("/app/dashboard");
+      nav("/app/dashboard", { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -35,19 +44,19 @@ export default function Onboarding() {
   return (
     <div className="card page-card" style={{ maxWidth: 560, margin: "40px auto" }}>
       <h2>Set up your college</h2>
-      <p className="muted">This appears in the header, attendance sheets, and reports. You can change it later in Settings.</p>
+      <p className="muted">Required once after your first sign-in. You can change this later in Settings.</p>
       {error && <div className="error">{error}</div>}
       <form onSubmit={submit} className="form-grid" style={{ marginTop: 16 }}>
         <div className="field span-2">
           <label>College name</label>
-          <input className="input" value={collegeName} onChange={(e) => setName(e.target.value)} placeholder="YOUR COLLEGE NAME" />
+          <input className="input" required value={collegeName} onChange={(e) => setName(e.target.value)} placeholder="YOUR COLLEGE NAME" />
         </div>
         <div className="field span-2">
           <label>Address (optional)</label>
           <input className="input" value={collegeAddress} onChange={(e) => setAddress(e.target.value)} placeholder="YOUR COLLEGE ADDRESS" />
         </div>
         <div className="field span-2">
-          <label>College logo (YOUR LOGO)</label>
+          <label>College logo (optional — YOUR LOGO)</label>
           <input className="input" type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} />
         </div>
         <div className="span-2">

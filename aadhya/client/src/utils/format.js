@@ -18,20 +18,4 @@ export function nowTime() {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export const PASSWORD_RULES = [
-  "At least 8 characters",
-  "One uppercase letter",
-  "One lowercase letter",
-  "One number",
-  "One special character",
-];
-
-export function passwordChecklist(password) {
-  return [
-    { label: "At least 8 characters", ok: (password || "").length >= 8 },
-    { label: "One uppercase letter", ok: /[A-Z]/.test(password || "") },
-    { label: "One lowercase letter", ok: /[a-z]/.test(password || "") },
-    { label: "One number", ok: /[0-9]/.test(password || "") },
-    { label: "One special character", ok: /[^A-Za-z0-9]/.test(password || "") },
-  ];
-}
+export { passwordChecklist, isGmail, isStrongPassword } from "./authValidation";

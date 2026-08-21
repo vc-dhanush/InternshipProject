@@ -5,20 +5,26 @@ const api = axios.create({
   withCredentials: true,
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("aadhya_token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+let onUnauthorized = null;
+
+export function setUnauthorizedHandler(handler) {
+  onUnauthorized = handler;
+}
 
 api.interceptors.response.use(
   (res) => res,
   (err) => {
+    const status = err.response?.status;
+    const url = String(err.config?.url || "");
+    const isAuthAttempt = /\/auth\/(login|signup|forgot-password|reset-password)/.test(url);
+    if (status === 401 && !isAuthAttempt && onUnauthorized) {
+      onUnauthorized();
+    }
     const message = err.response?.data?.message || "Network failure. Please try again.";
-    const details = err.response?.data?.details;
     const error = new Error(message);
-    error.status = err.response?.status;
-    error.details = details;
+    error.status = status;
+    error.details = err.response?.data?.details;
+    error.payload = err.response?.data;
     return Promise.reject(error);
   }
 );
