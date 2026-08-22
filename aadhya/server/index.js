@@ -6,7 +6,8 @@ const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const env = require("./config/env");
-const { connectDb } = require("./config/db");
+const mongoose = require("mongoose");
+const { connectDb, isConnected, retryConnect } = require("./config/db");
 const { ensureDir } = require("./middleware/upload");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
@@ -58,7 +59,14 @@ function createApp() {
   app.use("/uploads", express.static(env.uploadDir));
 
   app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, app: "Aadhya : attendance tracker" });
+    const states = ["disconnected", "connected", "connecting", "disconnecting"];
+    res.json({
+      ok: true,
+      app: "Aadhya : attendance tracker",
+      api: "started",
+      mongodb: states[mongoose.connection.readyState] || "unknown",
+      mongodbConnected: isConnected(),
+    });
   });
 
   app.use("/api/auth", authRoutes);
@@ -83,12 +91,35 @@ function createApp() {
   return app;
 }
 
-async function start() {
-  await connectDb();
-  const app = createApp();
-  app.listen(env.port, () => {
-    console.log(`Aadhya API running on ${env.serverUrl}`);
+function listen(app) {
+  const host = process.env.HOST || "0.0.0.0";
+  return new Promise((resolve, reject) => {
+    const server = app.listen(env.port, host, () => {
+      console.log("API started");
+      console.log(`Aadhya API listening on http://127.0.0.1:${env.port}`);
+      resolve(server);
+    });
+    server.on("error", reject);
   });
+}
+
+async function start() {
+  process.on("unhandledRejection", (err) => {
+    console.error("[process] Unhandled promise rejection:", err && err.message ? err.message : err);
+  });
+  process.on("uncaughtException", (err) => {
+    console.error("[process] Uncaught exception:", err && err.message ? err.message : err);
+  });
+
+  const app = createApp();
+  await listen(app);
+
+  try {
+    await connectDb();
+  } catch {
+    console.error("[db] API is up but MongoDB is not connected. Signup and other data routes will return HTTP 503 until MongoDB is available.");
+    retryConnect();
+  }
 }
 
 if (require.main === module) {

@@ -1,4 +1,5 @@
 const env = require("../config/env");
+const { isConnected } = require("../config/db");
 const User = require("../models/User");
 const { sendPasswordResetEmail, canSendMail } = require("../services/emailService");
 const { HttpError } = require("../utils/httpError");
@@ -43,8 +44,21 @@ function publicUser(user) {
   return user.toSafeJSON();
 }
 
+function signupLog(message) {
+  if (env.nodeEnv !== "production") {
+    console.log("[signup]", message);
+  }
+}
+
+function requireDb() {
+  if (!isConnected()) {
+    throw new HttpError(503, "Database is not connected. Start MongoDB and try again.");
+  }
+}
+
 async function signup(req, res, next) {
   try {
+    signupLog("Signup request received");
     const { fullName, email, password, confirmPassword, staffId } = req.body || {};
     if (!fullName || !String(fullName).trim()) {
       throw new HttpError(400, "Full name is required.");
@@ -65,12 +79,16 @@ async function signup(req, res, next) {
     if (!isStrongPassword(password)) {
       throw new HttpError(400, "Password does not meet the security requirements.", getPasswordIssues(password));
     }
+    signupLog("Validation passed");
 
+    requireDb();
+    signupLog("Checking existing user");
     const emailTaken = await User.findOne({ email: normalized });
     if (emailTaken) throw new HttpError(409, "An account with this email already exists.");
     const staffTaken = await User.findOne({ staffId: staff });
     if (staffTaken) throw new HttpError(409, "This Staff ID is already in use.");
 
+    signupLog("Creating user");
     const user = await User.create({
       fullName: String(fullName).trim(),
       email: normalized,
@@ -78,6 +96,8 @@ async function signup(req, res, next) {
       passwordHash: await hashPassword(password),
       onboardingComplete: false,
     });
+    signupLog("User created");
+    signupLog("Generating authentication cookie");
     const token = signAuthToken(user._id);
     user.lastLoginAt = new Date();
     await user.save();
@@ -87,6 +107,7 @@ async function signup(req, res, next) {
       loginTime: user.lastLoginAt,
       needsCollegeSetup: true,
     });
+    signupLog("Signup response sent");
   } catch (err) {
     next(err);
   }
@@ -94,6 +115,7 @@ async function signup(req, res, next) {
 
 async function login(req, res, next) {
   try {
+    requireDb();
     const { email, password, rememberMe } = req.body || {};
     const normalized = normalizeEmail(email);
     if (!normalized || !password) {
