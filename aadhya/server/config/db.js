@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const env = require("./env");
 
 mongoose.set("strictQuery", true);
-mongoose.set("bufferCommands", false);
 
 let listenersBound = false;
 let configLogged = false;
@@ -31,6 +30,7 @@ function bindListeners() {
 }
 
 async function connectDb(uri = env.mongodbUri) {
+  mongoose.set("bufferCommands", false);
   bindListeners();
   logConfigOnce();
 
