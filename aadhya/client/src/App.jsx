@@ -11,7 +11,11 @@ import Dashboard from "./pages/Dashboard";
 import Classes from "./pages/Classes";
 import ClassDetail from "./pages/ClassDetail";
 import StudentProfile from "./pages/StudentProfile";
-import StagePlaceholder from "./pages/StagePlaceholder";
+import Attendance from "./pages/Attendance";
+import { AttendanceHistory, AttendanceSession } from "./pages/AttendanceHistory";
+import Tests, { TestDetail } from "./pages/Tests";
+import Reports from "./pages/Reports";
+import ImportStudents from "./pages/ImportStudents";
 import StaffProfile from "./pages/StaffProfile";
 import Settings from "./pages/Settings";
 import Contact from "./pages/Contact";
@@ -41,9 +45,13 @@ export default function App() {
             <Route path="classes" element={<Classes />} />
             <Route path="classes/:classId" element={<ClassDetail />} />
             <Route path="students/:studentId" element={<StudentProfile />} />
-            <Route path="attendance" element={<StagePlaceholder title="Attendance" text="Attendance marking will be available here." />} />
-            <Route path="tests" element={<StagePlaceholder title="Tests & Marks" text="Tests and marks will be available here." />} />
-            <Route path="reports" element={<StagePlaceholder title="Reports" text="Attendance and academic reports will be available here." />} />
+            <Route path="attendance" element={<Attendance />} />
+            <Route path="attendance/history" element={<AttendanceHistory />} />
+            <Route path="attendance/history/:sessionId" element={<AttendanceSession />} />
+            <Route path="tests" element={<Tests />} />
+            <Route path="tests/:id" element={<TestDetail />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="import" element={<ImportStudents />} />
             <Route path="profile" element={<StaffProfile />} />
             <Route path="staff" element={<StaffProfile />} />
             <Route path="settings" element={<Settings />} />

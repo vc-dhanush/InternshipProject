@@ -2,10 +2,11 @@ import { Link } from "react-router-dom";
 import { Icon } from "./Icons";
 
 const actions = [
-  { to: "/app/attendance", label: "Take attendance", icon: "attendance" },
-  { to: "/app/classes?new=1", label: "Add class", icon: "classes" },
+  { to: "/app/classes?new=1", label: "Create class", icon: "classes" },
   { to: "/app/classes", label: "Add student", icon: "students" },
+  { to: "/app/attendance", label: "Take attendance", icon: "attendance" },
   { to: "/app/tests", label: "Create test", icon: "tests" },
+  { to: "/app/import", label: "Import students", icon: "students" },
 ];
 
 export default function QuickActions() {

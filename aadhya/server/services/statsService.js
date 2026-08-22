@@ -10,9 +10,10 @@ function percent(part, whole) {
   return Math.round((part / whole) * 1000) / 10;
 }
 
-async function studentAttendanceSummary(studentId, classId) {
+async function studentAttendanceSummary(studentId, classId, userId) {
   const filter = { student: studentId };
   if (classId) filter.class = classId;
+  if (userId) filter.user = userId;
   const records = await AttendanceRecord.find(filter).lean();
   const total = records.length;
   const present = records.filter((r) => r.status === "present").length;
@@ -89,7 +90,54 @@ async function testAnalytics(testId) {
     else if (p < 80) buckets["60-79"] += 1;
     else buckets["80-100"] += 1;
   });
-  return { highest, lowest, average, passCount, failCount, distribution: buckets, attempted: scores.length };
+  const avgPercent = scores.length ? percent(average, test.totalMarks) : 0;
+  return {
+    highest,
+    lowest,
+    average,
+    averagePercent: avgPercent,
+    passCount,
+    failCount,
+    distribution: buckets,
+    attempted: scores.length,
+    totalMarks: test.totalMarks,
+  };
+}
+
+async function studentMarksSummary(studentId, userId) {
+  const filter = { student: studentId };
+  if (userId) filter.user = userId;
+  const marks = await Mark.find(filter).populate("test", "name subject date totalMarks passPercent").lean();
+  const scores = marks
+    .filter((m) => m.test)
+    .map((m) => ({
+      obtained: m.obtainedMarks,
+      total: m.test.totalMarks,
+      percent: percent(m.obtainedMarks, m.test.totalMarks),
+      test: m.test,
+    }));
+  const percents = scores.map((s) => s.percent);
+  const obtained = scores.map((s) => s.obtained);
+  return {
+    testsTaken: scores.length,
+    averageMarks: obtained.length
+      ? Math.round((obtained.reduce((a, b) => a + b, 0) / obtained.length) * 10) / 10
+      : null,
+    highest: obtained.length ? Math.max(...obtained) : null,
+    lowest: obtained.length ? Math.min(...obtained) : null,
+    overallPercentage: percents.length
+      ? Math.round((percents.reduce((a, b) => a + b, 0) / percents.length) * 10) / 10
+      : null,
+    tests: scores.map((s) => ({
+      id: s.test._id,
+      name: s.test.name,
+      subject: s.test.subject,
+      date: s.test.date,
+      obtainedMarks: s.obtained,
+      totalMarks: s.total,
+      percentage: s.percent,
+    })),
+  };
 }
 
 module.exports = {
@@ -98,4 +146,5 @@ module.exports = {
   classAttendanceSummary,
   dashboardStats,
   testAnalytics,
+  studentMarksSummary,
 };

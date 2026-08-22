@@ -7,6 +7,7 @@ router.use(requireAuth);
 router.get("/class", r.classReport);
 router.get("/student/:studentId", r.studentReport);
 router.get("/low-attendance", r.lowAttendance);
+router.get("/tests", r.testReport);
 router.get("/overview", r.overview);
 router.get("/export/attendance.csv", r.exportAttendanceCsv);
 router.get("/export/marks.csv", r.exportMarksCsv);

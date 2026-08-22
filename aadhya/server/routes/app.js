@@ -3,7 +3,7 @@ const { requireAuth } = require("../middleware/auth");
 const { getDashboard } = require("../controllers/dashboardController");
 const settings = require("../controllers/settingsController");
 const profile = require("../controllers/profileController");
-const { importFromImage } = require("../controllers/ocrController");
+const { previewStudents, importStudents } = require("../controllers/ocrController");
 const { setUploadKind, uploadImage } = require("../middleware/upload");
 
 const router = express.Router();
@@ -14,6 +14,7 @@ router.put("/settings", setUploadKind("college"), uploadImage.single("logo"), se
 router.post("/onboarding", setUploadKind("college"), uploadImage.single("logo"), settings.completeOnboarding);
 router.get("/staff", profile.getStaff);
 router.put("/staff", setUploadKind("staff"), uploadImage.single("photo"), profile.updateStaff);
-router.post("/ocr/attendance", setUploadKind("ocr"), uploadImage.single("image"), importFromImage);
+router.post("/ocr/students", setUploadKind("ocr"), uploadImage.single("image"), previewStudents);
+router.post("/ocr/students/import", importStudents);
 
 module.exports = router;

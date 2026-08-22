@@ -1,5 +1,5 @@
-const CACHE = "aadhya-v1";
-const PRECACHE = ["/", "/manifest.json", "/assets/logo-placeholder.svg"];
+const CACHE = "aadhya-v2";
+const PRECACHE = ["/", "/manifest.json", "/assets/logo-placeholder.svg", "/assets/logo-placeholder.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

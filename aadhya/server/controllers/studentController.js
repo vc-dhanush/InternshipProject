@@ -4,6 +4,7 @@ const Student = require("../models/Student");
 const { HttpError } = require("../utils/httpError");
 const { escapeRegex } = require("../utils/validators");
 const { publicFileUrl } = require("../middleware/upload");
+const { studentAttendanceSummary, studentMarksSummary } = require("../services/statsService");
 
 async function assertOwnClass(userId, classId) {
   if (!mongoose.isValidObjectId(classId)) throw new HttpError(404, "Class not found.");
@@ -64,12 +65,12 @@ async function createStudent(req, res, next) {
   try {
     applyClassParam(req);
     const classId = req.body?.classId || req.params.id;
-    const rollNo = String(req.body?.rollNo || "").trim();
+    const rollNo = String(req.body?.rollNo || req.body?.studentId || "").trim();
     const name = String(req.body?.name || "").trim();
+    const studentId = String(req.body?.studentId || req.body?.rollNo || "").trim();
     if (!classId) throw new HttpError(400, "Class is required.");
-    if (!rollNo || !name) throw new HttpError(400, "Roll number and student name are required.");
+    if (!name || !studentId) throw new HttpError(400, "Student name and student ID are required.");
     await assertOwnClass(req.user._id, classId);
-    const studentId = String(req.body?.studentId || "").trim() || rollNo;
     try {
       const student = await Student.create({
         user: req.user._id,
@@ -99,7 +100,7 @@ async function updateStudent(req, res, next) {
     if (!mongoose.isValidObjectId(req.params.id)) throw new HttpError(404, "Student not found.");
     const student = await Student.findOne({ _id: req.params.id, user: req.user._id });
     if (!student) throw new HttpError(404, "Student not found.");
-    if (req.body.rollNo != null) student.rollNo = String(req.body.rollNo).trim();
+    if (req.body.rollNo != null) student.rollNo = String(req.body.rollNo).trim() || student.studentId;
     if (req.body.studentId != null) student.studentId = String(req.body.studentId).trim() || student.rollNo;
     if (req.body.name != null) student.name = String(req.body.name).trim();
     if (req.body.email != null) student.email = String(req.body.email).trim().toLowerCase();
@@ -109,7 +110,8 @@ async function updateStudent(req, res, next) {
       await assertOwnClass(req.user._id, req.body.class);
       student.class = req.body.class;
     }
-    if (!student.rollNo || !student.name) throw new HttpError(400, "Roll number and student name are required.");
+    if (!student.studentId || !student.name) throw new HttpError(400, "Student name and student ID are required.");
+    if (!student.rollNo) student.rollNo = student.studentId;
     if (req.file) student.profilePicture = publicFileUrl(req, req.file.path);
     try {
       await student.save();
@@ -150,8 +152,14 @@ async function getStudent(req, res, next) {
       .populate("class", "name subject section semester academicYear")
       .lean();
     if (!student) throw new HttpError(404, "Student not found.");
+    const [attendance, tests] = await Promise.all([
+      studentAttendanceSummary(student._id, student.class?._id, req.user._id),
+      studentMarksSummary(student._id, req.user._id),
+    ]);
     res.json({
       student: { ...student, id: student._id },
+      attendance,
+      tests,
     });
   } catch (err) {
     next(err);

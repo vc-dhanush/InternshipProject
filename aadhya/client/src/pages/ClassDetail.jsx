@@ -5,7 +5,7 @@ import PageHeader from "../components/PageHeader";
 import { ConfirmDialog, EmptyState, Modal, Spinner } from "../components/ui";
 import { Icon, initials } from "../components/Icons";
 
-const emptyStudent = { rollNo: "", studentId: "", name: "", email: "", phone: "" };
+const emptyStudent = { studentId: "", name: "", email: "", phone: "" };
 
 export default function ClassDetail() {
   const { classId } = useParams();
@@ -66,17 +66,17 @@ export default function ClassDetail() {
   async function saveStudent(e, isEdit) {
     e.preventDefault();
     const source = isEdit ? edit : form;
-    if (!source.rollNo.trim() || !source.name.trim()) {
-      setError("Roll number and student name are required.");
+    if (!source.name.trim() || !source.studentId.trim()) {
+      setError("Student name and student ID are required.");
       return;
     }
     setSaving(true);
     setError("");
     try {
       const fd = new FormData();
-      fd.append("rollNo", source.rollNo);
       fd.append("studentId", source.studentId);
       fd.append("name", source.name);
+      fd.append("rollNo", source.studentId);
       fd.append("email", source.email || "");
       fd.append("phone", source.phone || "");
       fd.append("classId", classId);
@@ -154,6 +154,7 @@ export default function ClassDetail() {
             <button className="btn" type="button" onClick={() => { setForm(emptyStudent); setAddOpen(true); }}>
               <Icon name="plus" size={16} /> Add Student
             </button>
+            <Link className="btn secondary" to={`/app/import?classId=${classId}`}>Import students</Link>
           </div>
         }
       />
@@ -201,7 +202,7 @@ export default function ClassDetail() {
               <div>
                 <strong>{st.name}</strong>
                 {st.archived && <span className="badge muted">Archived</span>}
-                <p className="meta">Roll {st.rollNo} · ID {st.studentId}</p>
+                <p className="meta">ID {st.studentId}</p>
                 <p className="meta">{st.email || "No email"} · {st.phone || "No phone"}</p>
               </div>
               <div className="card-actions">
@@ -268,17 +269,13 @@ function StudentFields({ value, onChange, onPhoto }) {
   }
   return (
     <>
-      <div className="field">
-        <label htmlFor="st-roll">Roll number</label>
-        <input id="st-roll" className="input" required value={value.rollNo} onChange={(e) => set("rollNo", e.target.value)} />
-      </div>
-      <div className="field">
-        <label htmlFor="st-id">Student ID</label>
-        <input id="st-id" className="input" value={value.studentId} onChange={(e) => set("studentId", e.target.value)} placeholder="Defaults to roll number" />
-      </div>
       <div className="field span-2">
         <label htmlFor="st-name">Student name</label>
         <input id="st-name" className="input" required value={value.name} onChange={(e) => set("name", e.target.value)} />
+      </div>
+      <div className="field span-2">
+        <label htmlFor="st-id">Student ID</label>
+        <input id="st-id" className="input" required value={value.studentId} onChange={(e) => set("studentId", e.target.value)} />
       </div>
       <div className="field">
         <label htmlFor="st-email">Email</label>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../services/api";
 import PageHeader from "../components/PageHeader";
-import { Spinner } from "../components/ui";
+import { EmptyState, Spinner } from "../components/ui";
 import { initials } from "../components/Icons";
 
 export default function StudentProfile() {
@@ -32,13 +32,15 @@ export default function StudentProfile() {
   }
 
   const s = data.student;
+  const att = data.attendance || {};
+  const tests = data.tests || {};
+
   return (
     <div>
-      <PageHeader title={s.name} text={`${s.class?.name || "Class"} · Roll ${s.rollNo}`} />
+      <PageHeader title={s.name} text={`${s.class?.name || "Class"} · ${s.studentId}`} />
       <div className="card profile-head">
         {s.profilePicture ? <img src={s.profilePicture} alt="" /> : <div className="ph">{initials(s.name)}</div>}
         <div>
-          <p><strong>Roll number:</strong> {s.rollNo}</p>
           <p><strong>Student ID:</strong> {s.studentId}</p>
           <p><strong>Class:</strong> {s.class?.name} {s.class?.section ? `· ${s.class.section}` : ""} · {s.class?.subject}</p>
           <p><strong>Email:</strong> {s.email || "—"}</p>
@@ -49,11 +51,29 @@ export default function StudentProfile() {
       <div className="chart-grid" style={{ marginTop: 16 }}>
         <section className="card panel">
           <h3>Attendance</h3>
-          <p className="muted">Attendance data will appear here after attendance sessions are created.</p>
+          {att.totalClasses ? (
+            <div className="kpis">
+              <div className="kpi"><span className="muted">Attendance %</span><b>{att.percentage}%</b></div>
+              <div className="kpi"><span className="muted">Present</span><b>{att.present}</b></div>
+              <div className="kpi"><span className="muted">Absent</span><b>{att.absent}</b></div>
+              <div className="kpi"><span className="muted">Classes</span><b>{att.totalClasses}</b></div>
+            </div>
+          ) : (
+            <EmptyState title="No attendance yet" text="Attendance appears here after sessions are saved for this class." />
+          )}
         </section>
         <section className="card panel">
-          <h3>Tests &amp; marks</h3>
-          <p className="muted">Test performance will appear here after tests are created.</p>
+          <h3>Tests</h3>
+          {tests.testsTaken ? (
+            <div className="kpis">
+              <div className="kpi"><span className="muted">Tests taken</span><b>{tests.testsTaken}</b></div>
+              <div className="kpi"><span className="muted">Average marks</span><b>{tests.averageMarks}</b></div>
+              <div className="kpi"><span className="muted">Highest</span><b>{tests.highest}</b></div>
+              <div className="kpi"><span className="muted">Lowest</span><b>{tests.lowest}</b></div>
+            </div>
+          ) : (
+            <EmptyState title="No tests yet" text="Marks appear here after tests are created and scores are entered." />
+          )}
         </section>
       </div>
     </div>

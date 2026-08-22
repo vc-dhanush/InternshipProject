@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
-import { AttendanceToggle, Modal, Spinner } from "../components/ui";
+import PageHeader from "../components/PageHeader";
+import { AttendanceToggle, ConfirmDialog, EmptyState, Spinner } from "../components/ui";
 import { nowTime, todayISO } from "../utils/format";
 
 export default function Attendance() {
@@ -12,25 +13,29 @@ export default function Attendance() {
   const [classes, setClasses] = useState([]);
   const [sheet, setSheet] = useState(null);
   const [marks, setMarks] = useState({});
+  const [subject, setSubject] = useState("");
   const [date, setDate] = useState(todayISO());
   const [time, setTime] = useState(nowTime());
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [q, setQ] = useState("");
 
   useEffect(() => {
-    api.get("/classes").then(({ data }) => setClasses(data.classes));
+    api.get("/classes").then(({ data }) => setClasses(data.classes)).catch((err) => setError(err.message));
   }, []);
 
   async function loadSheet(id) {
     if (!id) return;
     setBusy(true);
     setError("");
+    setSuccess("");
     try {
       const { data } = await api.get("/attendance/sheet", { params: { classId: id } });
       setSheet(data);
+      setSubject(data.class.subject || "");
       const next = {};
       data.students.forEach((s) => {
         next[s.id || s._id] = data.defaultStatus || "present";
@@ -38,6 +43,7 @@ export default function Attendance() {
       setMarks(next);
     } catch (err) {
       setError(err.message);
+      setSheet(null);
     } finally {
       setBusy(false);
     }
@@ -45,13 +51,17 @@ export default function Attendance() {
 
   useEffect(() => {
     if (classId) loadSheet(classId);
+    else {
+      setSheet(null);
+      setMarks({});
+    }
   }, [classId]);
 
   const students = useMemo(() => {
     const list = sheet?.students || [];
     const needle = q.trim().toLowerCase();
     if (!needle) return list;
-    return list.filter((s) => `${s.name} ${s.rollNo} ${s.studentId}`.toLowerCase().includes(needle));
+    return list.filter((s) => `${s.name} ${s.studentId} ${s.rollNo}`.toLowerCase().includes(needle));
   }, [sheet, q]);
 
   const present = Object.values(marks).filter((v) => v === "present").length;
@@ -76,12 +86,11 @@ export default function Attendance() {
         classId,
         date,
         time,
-        subject: sheet.class.subject,
+        subject,
         records,
       });
       setConfirm(false);
-      setError("");
-      alert("Attendance saved.");
+      setSuccess("Attendance saved.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -91,6 +100,15 @@ export default function Attendance() {
 
   return (
     <div>
+      <PageHeader
+        title="Attendance"
+        text="Select a class, mark present or absent, and save the session."
+        actions={
+          <div className="row-actions" style={{ marginTop: 0 }}>
+            <Link className="btn secondary" to="/app/attendance/history">History</Link>
+          </div>
+        }
+      />
       <div className="toolbar">
         <select className="select" style={{ maxWidth: 320 }} value={classId} onChange={(e) => setParams({ classId: e.target.value })}>
           <option value="">Select class</option>
@@ -98,81 +116,98 @@ export default function Attendance() {
             <option key={c.id} value={c.id}>{c.name} — {c.subject}</option>
           ))}
         </select>
-        <Link className="btn secondary" to="/app/history">History</Link>
-        <Link className="btn secondary" to="/app/import">Import from image</Link>
       </div>
       {error && <div className="error">{error}</div>}
-      {!classId && <p className="muted">Choose a class to open the attendance sheet.</p>}
+      {success && <div className="success">{success}</div>}
+      {!classId && (
+        <EmptyState title="Choose a class" text="Open the attendance sheet for one of your classes. Student lists load automatically." />
+      )}
       {busy && <Spinner label="Loading students…" />}
-      {sheet && (
+      {sheet && !busy && (
         <>
           <div className="card attendance-hero">
             <div>
               <div className="college-chip" style={{ marginBottom: 10 }}>
-                <img src={settings?.collegeLogo || "/assets/logo-placeholder.svg"} alt="YOUR LOGO" />
+                <img src={settings?.collegeLogo || "/assets/logo-placeholder.svg"} alt="" />
                 <span>{settings?.collegeName || "YOUR COLLEGE NAME"}</span>
               </div>
               <h2 style={{ margin: "0 0 6px" }}>{sheet.class.name}</h2>
-              <div className="meta">
-                {settings?.appName || "Aadhya : attendance tracker"} • {sheet.class.subject}
-              </div>
-              <div className="toolbar">
-                <input type="date" className="input" style={{ maxWidth: 180 }} value={date} onChange={(e) => setDate(e.target.value)} />
-                <input className="input" style={{ maxWidth: 140 }} value={time} onChange={(e) => setTime(e.target.value)} />
+              <div className="meta">{settings?.appName || "Aadhya : attendance tracker"}</div>
+              <div className="toolbar att-meta">
+                <label className="field" style={{ margin: 0 }}>
+                  <span>Subject</span>
+                  <input className="input" value={subject} onChange={(e) => setSubject(e.target.value)} />
+                </label>
+                <label className="field" style={{ margin: 0 }}>
+                  <span>Date</span>
+                  <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />
+                </label>
+                <label className="field" style={{ margin: 0 }}>
+                  <span>Time</span>
+                  <input className="input" value={time} onChange={(e) => setTime(e.target.value)} />
+                </label>
               </div>
             </div>
             <div className="kpis">
               <div className="kpi"><span className="muted">Total</span><b>{total}</b></div>
               <div className="kpi"><span className="muted">Present</span><b>{present}</b></div>
               <div className="kpi"><span className="muted">Absent</span><b>{absent}</b></div>
-              <div className="kpi"><span className="muted">Attendance</span><b>{pct}%</b></div>
+              <div className="kpi"><span className="muted">Attendance %</span><b>{pct}%</b></div>
             </div>
           </div>
-          <div className="toolbar">
-            <input className="search" placeholder="Search Rahul…" value={q} onChange={(e) => setQ(e.target.value)} />
-            <button className="btn secondary" onClick={() => markAll("present")}>Mark all Present</button>
-            <button className="btn secondary" onClick={() => markAll("absent")}>Mark all Absent</button>
-            <button className="btn ghost" onClick={() => loadSheet(classId)}>Reset</button>
-            <button className="btn" onClick={() => setConfirm(true)}>Save attendance</button>
-          </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Roll No</th>
-                  <th>Student Name</th>
-                  <th>Attendance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((s, i) => {
-                  const sid = s.id || s._id;
-                  return (
-                    <tr key={sid}>
-                      <td>{i + 1}</td>
-                      <td>{s.rollNo}</td>
-                      <td>{s.name}</td>
-                      <td>
-                        <AttendanceToggle value={marks[sid]} onChange={(v) => setMarks({ ...marks, [sid]: v })} />
-                      </td>
+          {!sheet.students.length ? (
+            <EmptyState
+              title="No students in this class"
+              text="Add students or import a student list before taking attendance."
+              action={<Link className="btn" to={`/app/classes/${classId}`}>Open class</Link>}
+            />
+          ) : (
+            <>
+              <div className="toolbar att-actions">
+                <input className="search" placeholder="Search student ID or name" value={q} onChange={(e) => setQ(e.target.value)} />
+                <button className="btn secondary" type="button" onClick={() => markAll("present")}>Mark all present</button>
+                <button className="btn secondary" type="button" onClick={() => markAll("absent")}>Mark all absent</button>
+                <button className="btn ghost" type="button" onClick={() => loadSheet(classId)}>Reset</button>
+                <button className="btn" type="button" onClick={() => setConfirm(true)}>Save attendance</button>
+              </div>
+              <div className="table-wrap mobile-cards">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Student ID</th>
+                      <th>Student name</th>
+                      <th>Attendance</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {students.map((s) => {
+                      const sid = s.id || s._id;
+                      return (
+                        <tr key={sid}>
+                          <td data-label="Student ID">{s.studentId}</td>
+                          <td data-label="Name">{s.name}</td>
+                          <td data-label="Attendance">
+                            <AttendanceToggle value={marks[sid]} onChange={(v) => setMarks({ ...marks, [sid]: v })} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </>
       )}
       {confirm && (
-        <Modal title="Confirm attendance" onClose={() => setConfirm(false)}>
-          <p><strong>{present} Present</strong></p>
-          <p><strong>{absent} Absent</strong></p>
-          <div className="row-actions">
-            <button className="btn secondary" onClick={() => setConfirm(false)}>Back</button>
-            <button className="btn" disabled={saving} onClick={save}>{saving ? <Spinner label="Saving…" /> : "Confirm & save"}</button>
-          </div>
-        </Modal>
+        <ConfirmDialog
+          title="Save this attendance session?"
+          text={`${present} present, ${absent} absent (${pct}%). This creates a saved session for ${date} ${time}.`}
+          confirmLabel="Confirm & save"
+          busy={saving}
+          onClose={() => setConfirm(false)}
+          onConfirm={save}
+        />
       )}
     </div>
   );

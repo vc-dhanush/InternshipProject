@@ -42,7 +42,7 @@ async function createTest(req, res, next) {
       totalMarks: total,
       passPercent: passPercent == null ? 40 : Number(passPercent),
     });
-    const students = await Student.find({ class: classId, user: req.user._id }).sort({ rollNo: 1 }).lean();
+    const students = await Student.find({ class: classId, user: req.user._id, archived: { $ne: true } }).sort({ studentId: 1, rollNo: 1 }).lean();
     res.status(201).json({
       test: { ...test.toObject(), id: test._id },
       students: students.map((s) => ({ ...s, id: s._id })),
@@ -58,10 +58,10 @@ async function getTest(req, res, next) {
       .populate("class", "name subject section")
       .lean();
     if (!test) throw new HttpError(404, "Test not found.");
-    const students = await Student.find({ class: test.class._id || test.class, user: req.user._id })
-      .sort({ rollNo: 1 })
+    const students = await Student.find({ class: test.class._id || test.class, user: req.user._id, archived: { $ne: true } })
+      .sort({ studentId: 1, rollNo: 1 })
       .lean();
-    const marks = await Mark.find({ test: test._id }).lean();
+    const marks = await Mark.find({ test: test._id, user: req.user._id }).lean();
     const byStudent = new Map(marks.map((m) => [String(m.student), m]));
     const rows = students.map((s) => ({
       student: { ...s, id: s._id },
@@ -90,6 +90,8 @@ async function saveMarks(req, res, next) {
       if (value > test.totalMarks) {
         throw new HttpError(400, "Obtained marks cannot exceed total marks.");
       }
+      const student = await Student.findOne({ _id: entry.studentId, user: req.user._id, class: test.class });
+      if (!student) throw new HttpError(404, "Student not found in this class.");
       await Mark.findOneAndUpdate(
         { test: test._id, student: entry.studentId, user: req.user._id },
         {
