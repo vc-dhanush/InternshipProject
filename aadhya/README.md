@@ -164,15 +164,28 @@ The Express server serves `client/dist` when it exists, so one process can host 
 
 ---
 
-## 11. Deployment
+## 11. Deployment (Vercel)
 
-1. Set production env vars on the host (Render, Railway, Fly.io, a VPS, etc.).
-2. `JWT_SECRET` must be unique and private.
-3. `CLIENT_URL` must match the public site origin.
-4. Persist the `uploads/` directory or switch to object storage later.
-5. Build the client, start the server, and put TLS in front of it.
+This folder is ready for Vercel. Step-by-step checklist: **`DEPLOY-VERCEL.txt`** at the repository root (and the same steps below).
 
-Frontend-only hosts (Vercel/Netlify) can deploy `client/` if they proxy `/api` to the Node server.
+1. Create a free **MongoDB Atlas** cluster. Allow Network Access from `0.0.0.0/0`. Copy the `mongodb+srv://…` URI.
+2. In Vercel: **Import** `vc-dhanush/InternshipProject`. Framework **Other**. Root Directory can stay empty (repo `vercel.json`) or be set to `aadhya`.
+3. Environment variables (Production and Preview):
+
+| Variable | Value |
+| --- | --- |
+| `MONGODB_URI` | Atlas connection string (database name `aadhya`) |
+| `JWT_SECRET` | Long random secret |
+| `NODE_ENV` | `production` |
+| `CLIENT_URL` | `https://YOUR-APP.vercel.app` |
+| `SERVER_URL` | `https://YOUR-APP.vercel.app` |
+
+4. Deploy. Check `https://YOUR-APP.vercel.app/api/health` — `mongodb` should be `connected`.
+5. Open `/auth` and create a staff account.
+
+Vercel serverless storage is ephemeral (`/tmp`). Logos/OCR files may disappear after a cold start; MongoDB data is durable. Large OCR jobs can exceed the free 10s limit — add students by hand if that happens.
+
+Render / Railway / a VPS still work: set the same env vars, `npm run build`, `npm start`.
 
 ---
 

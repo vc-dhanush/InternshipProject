@@ -1,0 +1,63 @@
+Aadhya on Vercel (full app: login, classes, attendance, tests, assignments, seminars)
+
+This is a MERN app. Vercel hosts the React UI and the Express API.
+You MUST add MongoDB Atlas. Vercel does not include a database.
+
+------------------------------------------------
+1. MongoDB Atlas (required)
+------------------------------------------------
+- Create a free cluster at https://cloud.mongodb.com
+- Database user + password
+- Network Access: Add IP Address → Allow Access from Anywhere (0.0.0.0/0)
+- Connect → Drivers → copy the URI
+  mongodb+srv://USER:PASSWORD@cluster0.xxxxx.mongodb.net/aadhya?retryWrites=true&w=majority
+
+------------------------------------------------
+2. Import the GitHub repo
+------------------------------------------------
+- https://vercel.com/new
+- Import: vc-dhanush/InternshipProject
+- Framework Preset: Other
+- Root Directory: leave blank (repo root)  OR  set to  aadhya
+- Install / Build / Output: leave auto (vercel.json is already in the repo)
+
+Project name: use a NEW name such as aadhya-attendance
+(do not reuse a Skill-Exchange project unless you want to replace it)
+
+------------------------------------------------
+3. Environment variables (Production + Preview)
+------------------------------------------------
+MONGODB_URI   = mongodb+srv://...  (from Atlas)
+JWT_SECRET    = a long random string (32+ characters)
+NODE_ENV      = production
+CLIENT_URL    = https://YOUR-PROJECT.vercel.app
+SERVER_URL    = https://YOUR-PROJECT.vercel.app
+
+Optional email (forgot password):
+EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD, EMAIL_FROM
+
+Do NOT set HOST=127.0.0.1 on Vercel.
+Do NOT set UPLOAD_DIR unless you know you need it (ephemeral /tmp is used automatically).
+
+After the first deploy, copy the real Vercel URL into CLIENT_URL and SERVER_URL, then Redeploy.
+
+------------------------------------------------
+4. Deploy
+------------------------------------------------
+Click Deploy.
+
+Open https://YOUR-PROJECT.vercel.app/api/health
+You should see "ok": true and mongodb "connected".
+
+Then open /auth and sign up.
+
+------------------------------------------------
+5. If login fails
+------------------------------------------------
+- Health shows mongodb disconnected → Atlas URI or Network Access
+- CORS / cookie issues → CLIENT_URL must be exactly https://your-app.vercel.app (no trailing slash)
+- 503 on /api → MONGODB_URI missing
+
+OCR on Vercel may time out on the free plan (10s). Add students manually if a large photo fails.
+
+Uploads are temporary on Vercel (serverless /tmp). They are not a permanent disk.

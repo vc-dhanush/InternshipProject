@@ -32,7 +32,13 @@ function createApp() {
   );
   app.use(
     cors({
-      origin: env.clientUrl,
+      origin(origin, callback) {
+        if (!origin || env.corsOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+        callback(null, false);
+      },
       credentials: true,
     })
   );
@@ -59,6 +65,7 @@ function createApp() {
 
   ensureDir(env.uploadDir);
   app.use("/uploads", express.static(env.uploadDir));
+  app.use("/api/uploads", express.static(env.uploadDir));
 
   app.get("/api/health", (_req, res) => {
     const states = ["disconnected", "connected", "connecting", "disconnecting"];
@@ -136,6 +143,11 @@ async function shutdown(signal) {
   process.exit(0);
 }
 
+async function ensureDatabase() {
+  if (isConnected()) return;
+  await connectDb();
+}
+
 async function start() {
   process.on("unhandledRejection", (err) => {
     console.error("[process] Unhandled promise rejection:", err && err.message ? err.message : err);
@@ -164,4 +176,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createApp, start };
+module.exports = { createApp, start, ensureDatabase };

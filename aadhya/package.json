@@ -12,6 +12,9 @@
     "start": "npm start --prefix server",
     "test": "npm test --prefix server"
   },
+  "engines": {
+    "node": ">=18"
+  },
   "devDependencies": {
     "concurrently": "^9.1.2"
   }
