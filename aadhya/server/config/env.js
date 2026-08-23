@@ -42,13 +42,15 @@ const serverUrl =
 const corsOrigins = [...new Set([clientUrl, serverUrl, vercelOrigin()].filter(Boolean))];
 
 const onVercel = Boolean(process.env.VERCEL);
+const mongodbUriFromEnv =
+  process.env.MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URI || "";
 
 module.exports = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT) || 5000,
   host: process.env.HOST || (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1"),
-  mongodbUri: process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/aadhya",
-  mongodbUriFromEnv: Boolean(process.env.MONGODB_URI),
+  mongodbUri: mongodbUriFromEnv || "mongodb://127.0.0.1:27017/aadhya",
+  mongodbUriFromEnv: Boolean(mongodbUriFromEnv),
   jwtSecret: requiredInProd("JWT_SECRET", "dev-only-change-me"),
   jwtSecretFromEnv: Boolean(process.env.JWT_SECRET),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",

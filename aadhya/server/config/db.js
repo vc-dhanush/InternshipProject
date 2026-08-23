@@ -42,7 +42,7 @@ async function connectDb(uri = env.mongodbUri) {
 
   try {
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 8000,
+      serverSelectionTimeoutMS: process.env.VERCEL ? 15000 : 8000,
     });
   } catch (err) {
     console.error("[db] MongoDB connection failed.");
