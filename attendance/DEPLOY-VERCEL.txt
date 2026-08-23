@@ -1,0 +1,20 @@
+Deploy SkyVault Attendance as a NEW Vercel project so it does not overwrite Skill-Exchange.
+
+1. Open https://vercel.com/new and sign in with GitHub.
+2. Import repository: vc-dhanush/InternshipProject
+3. Project Name: attendance-dashboard  (must be a new name)
+4. Root Directory: attendance
+5. Framework Preset: Other
+6. Build Command: leave empty
+7. Output Directory: leave empty / .
+8. Production Branch: cursor/attendance-project-redo-e6dc
+   (or merge this branch to main, then use main)
+9. Click Deploy
+
+Expected URL: https://attendance-dashboard.vercel.app
+
+CLI from this folder after `npx vercel login`:
+  npx vercel@latest --prod --yes --name attendance-dashboard
+
+Browser vault is per website. After go-live, Download CSV/JSON from localhost
+and Import file on the Vercel URL to copy classes and students.
