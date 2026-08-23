@@ -1,0 +1,11 @@
+.git
+**/.env
+**/node_modules
+**/dist
+attendance
+*.zip
+*.png
+*.md
+!aadhya/README.md
+aadhya/server/tests
+**/*.log

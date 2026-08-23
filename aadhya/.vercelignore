@@ -1,0 +1,6 @@
+.env
+**/node_modules
+server/tests
+**/*.log
+*.zip
+client/dist

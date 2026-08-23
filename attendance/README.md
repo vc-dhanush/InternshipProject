@@ -2,6 +2,8 @@
 
 Standalone sky-blue attendance app. It does not replace Skill-Exchange.
 
+The full MERN rebuild lives in **`/aadhya`** (`Aadhya : attendance tracker`). Use that project for authentication, MongoDB, classes, tests, assignments, seminars, reports, and OCR import.
+
 ## Flow
 
 1. Welcome screen

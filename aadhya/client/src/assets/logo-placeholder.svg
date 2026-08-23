@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" role="img" aria-label="YOUR LOGO">
+  <rect width="192" height="192" rx="40" fill="#0f172a"/>
+  <rect x="18" y="18" width="156" height="156" rx="28" fill="#111827"/>
+  <path d="M48 132 L96 52 L144 132 Z" fill="none" stroke="#6366f1" stroke-width="10" stroke-linejoin="round"/>
+  <circle cx="96" cy="108" r="10" fill="#14b8a6"/>
+  <text x="96" y="158" text-anchor="middle" font-family="Inter, Arial" font-size="18" fill="#94a3b8">YOUR LOGO</text>
+</svg>
