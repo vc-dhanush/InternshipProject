@@ -1,33 +1,36 @@
-# Attendance Maintenance System (legacy static prototype)
+# SkyVault Attendance
 
-The full MERN rebuild lives in **`/aadhya`** (`Aadhya : attendance tracker`). Use that project for authentication, MongoDB, classes, tests, reports, and OCR import.
+Standalone sky-blue attendance app. It does not replace Skill-Exchange.
 
-This folder remains the earlier standalone sky-blue attendance app. It is **not** part of Skill-Exchange and should be hosted as its **own** static site if you still need it.
+The full MERN rebuild lives in **`/aadhya`** (`Aadhya : attendance tracker`). Use that project for authentication, MongoDB, classes, tests, assignments, seminars, reports, and OCR import.
 
-## What it does
+## Flow
 
 1. Welcome screen
-2. Create or open a class (up to **10** named classes — no Class 1–10 presets)
-3. Add students with a **unique register number** per class
-4. Everyone starts **present**; you only mark **absent**
-5. Present / absent lists, compact kid charts, CSV backup
-6. Records stay in this browser for about **6 months** (localStorage + IndexedDB)
+2. Create up to 10 named classes (saved in this browser)
+3. Add students with unique register numbers
+4. Everyone is **present** until you tap to mark **absent**
+5. Compact charts: pie, doughnut, bar, line, polar, radar
+6. CSV / JSON backup (needed to copy data to Vercel)
 
-Data lives in the browser on this device. Localhost and a Vercel URL are different origins, so export CSV if you move hosts.
+Records older than **186 days** (~6 months) are pruned automatically. Storage is IndexedDB plus localStorage in **this browser, this origin**.
 
-## Run locally (port 5500)
+## Run on Windows (port 5500)
 
-From this folder:
+From the repo root:
 
-```bash
-./start.sh
+```bat
+run-attendance.bat
 ```
 
-Windows: double-click `start.bat`.
+Or from `attendance\`:
 
-Then open http://localhost:5500/
+```bat
+start-attendance.bat
+```
 
-## Deploy without touching Skill-Exchange
+Open http://127.0.0.1:5500
 
-- **Zip:** use `attendance-dashboard.zip` at the repo root (`index.html` is at the zip root). Drop it on Vercel, Netlify, or GitHub Pages as a **new** project.
-- **Vercel CLI:** create a **new** project named `attendance-dashboard` with this `attendance/` folder as the root directory. Do not set the Skill-Exchange repo root as the Vercel root.
+## Deploy
+
+See `DEPLOY-VERCEL.txt`. Use a **new** Vercel project named `attendance-dashboard` with Root Directory `attendance`.
