@@ -6,7 +6,7 @@ const actions = [
   { to: "/app/classes", label: "Add student", icon: "students" },
   { to: "/app/attendance", label: "Take attendance", icon: "attendance" },
   { to: "/app/tests", label: "Create test", icon: "tests" },
-  { to: "/app/import", label: "Import students", icon: "students" },
+  { to: "/app/import-students", label: "Import students", icon: "students" },
 ];
 
 export default function QuickActions() {

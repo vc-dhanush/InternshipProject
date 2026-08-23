@@ -7,7 +7,7 @@ const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const env = require("./config/env");
 const mongoose = require("mongoose");
-const { connectDb, isConnected, retryConnect } = require("./config/db");
+const { connectDb, isConnected, disconnectDb } = require("./config/db");
 const { ensureDir } = require("./middleware/upload");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
@@ -16,6 +16,8 @@ const classRoutes = require("./routes/classes");
 const studentRoutes = require("./routes/students");
 const attendanceRoutes = require("./routes/attendance");
 const testRoutes = require("./routes/tests");
+const assignmentRoutes = require("./routes/assignments");
+const seminarRoutes = require("./routes/seminars");
 const reportRoutes = require("./routes/reports");
 const appRoutes = require("./routes/app");
 
@@ -74,6 +76,8 @@ function createApp() {
   app.use("/api/students", studentRoutes);
   app.use("/api/attendance", attendanceRoutes);
   app.use("/api/tests", testRoutes);
+  app.use("/api/assignments", assignmentRoutes);
+  app.use("/api/seminars", seminarRoutes);
   app.use("/api/reports", reportRoutes);
   app.use("/api", appRoutes);
 
@@ -92,15 +96,44 @@ function createApp() {
 }
 
 function listen(app) {
-  const host = process.env.HOST || "0.0.0.0";
+  const host = env.host;
   return new Promise((resolve, reject) => {
     const server = app.listen(env.port, host, () => {
       console.log("API started");
       console.log(`Aadhya API listening on http://127.0.0.1:${env.port}`);
       resolve(server);
     });
-    server.on("error", reject);
+    server.on("error", (err) => {
+      if (err && err.code === "EADDRINUSE") {
+        console.error(`Port ${env.port} is already in use.`);
+        console.error("Another Aadhya API process may already be running.");
+        console.error("Stop the other process, or run a single `npm run dev` from the aadhya folder.");
+        process.exit(1);
+      }
+      reject(err);
+    });
   });
+}
+
+let httpServer = null;
+let shuttingDown = false;
+
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[process] ${signal} received. Shutting down…`);
+  try {
+    if (httpServer) {
+      await new Promise((resolve) => {
+        httpServer.close(() => resolve());
+        setTimeout(resolve, 4000).unref();
+      });
+    }
+    await disconnectDb();
+  } catch (err) {
+    console.error("[process] Shutdown error:", err && err.message ? err.message : err);
+  }
+  process.exit(0);
 }
 
 async function start() {
@@ -110,21 +143,23 @@ async function start() {
   process.on("uncaughtException", (err) => {
     console.error("[process] Uncaught exception:", err && err.message ? err.message : err);
   });
-
-  const app = createApp();
-  await listen(app);
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
 
   try {
     await connectDb();
   } catch {
-    console.error("[db] API is up but MongoDB is not connected. Signup and other data routes will return HTTP 503 until MongoDB is available.");
-    retryConnect();
+    console.error("[db] MongoDB is required. The API was not started.");
+    process.exit(1);
   }
+
+  const app = createApp();
+  httpServer = await listen(app);
 }
 
 if (require.main === module) {
   start().catch((err) => {
-    console.error(err);
+    console.error(err && err.message ? err.message : err);
     process.exit(1);
   });
 }

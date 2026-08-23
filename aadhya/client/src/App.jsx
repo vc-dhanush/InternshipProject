@@ -14,6 +14,8 @@ import StudentProfile from "./pages/StudentProfile";
 import Attendance from "./pages/Attendance";
 import { AttendanceHistory, AttendanceSession } from "./pages/AttendanceHistory";
 import Tests, { TestDetail } from "./pages/Tests";
+import Assignments, { AssignmentDetail } from "./pages/Assignments";
+import Seminars, { SeminarDetail } from "./pages/Seminars";
 import Reports from "./pages/Reports";
 import ImportStudents from "./pages/ImportStudents";
 import StaffProfile from "./pages/StaffProfile";
@@ -50,8 +52,13 @@ export default function App() {
             <Route path="attendance/history/:sessionId" element={<AttendanceSession />} />
             <Route path="tests" element={<Tests />} />
             <Route path="tests/:id" element={<TestDetail />} />
+            <Route path="assignments" element={<Assignments />} />
+            <Route path="assignments/:id" element={<AssignmentDetail />} />
+            <Route path="seminars" element={<Seminars />} />
+            <Route path="seminars/:id" element={<SeminarDetail />} />
             <Route path="reports" element={<Reports />} />
-            <Route path="import" element={<ImportStudents />} />
+            <Route path="import" element={<Navigate to="/app/import-students" replace />} />
+            <Route path="import-students" element={<ImportStudents />} />
             <Route path="profile" element={<StaffProfile />} />
             <Route path="staff" element={<StaffProfile />} />
             <Route path="settings" element={<Settings />} />

@@ -9,6 +9,8 @@ const mainLinks = [
   { to: "/app/classes", label: "Classes", icon: "classes" },
   { to: "/app/attendance", label: "Attendance", icon: "attendance" },
   { to: "/app/tests", label: "Tests & Marks", icon: "tests" },
+  { to: "/app/assignments", label: "Assignments", icon: "assignments" },
+  { to: "/app/seminars", label: "Seminars", icon: "seminars" },
   { to: "/app/reports", label: "Reports", icon: "reports" },
 ];
 const accountLinks = [

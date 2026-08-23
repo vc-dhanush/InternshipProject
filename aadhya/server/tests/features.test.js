@@ -230,7 +230,7 @@ describe("attendance tests reports and import", async () => {
     const arjun = preview.find((r) => r.studentId === "103");
     const rahul = preview.find((r) => r.studentId === "101");
     assert.equal(arjun.status, "new");
-    assert.equal(rahul.status, "matched");
+    assert.equal(rahul.status, "duplicate");
     const imported = await request("/api/ocr/students/import", {
       method: "POST",
       cookies: a,
@@ -253,5 +253,58 @@ describe("attendance tests reports and import", async () => {
     if (!ready) return;
     const res = await request("/api/ocr/students", { method: "POST", cookies: a, body: { classId: classA } });
     assert.equal(res.status, 400);
+  });
+
+  it("creates assignments and blocks staff B", async () => {
+    if (!ready) return;
+    const created = await request("/api/assignments", {
+      method: "POST",
+      cookies: a,
+      body: {
+        title: "Lab 1",
+        subject: "Machine Learning",
+        classId: classA,
+        assignedDate: "2026-08-20",
+        dueDate: "2026-08-27",
+        maxMarks: 10,
+      },
+    });
+    assert.equal(created.status, 201);
+    const id = created.data.assignment.id;
+    const marks = await request(`/api/assignments/${id}/marks`, {
+      method: "POST",
+      cookies: a,
+      body: { marks: [{ studentId: studentA, obtainedMarks: 8 }] },
+    });
+    assert.equal(marks.status, 200);
+    const other = await request(`/api/assignments/${id}`, { cookies: b });
+    assert.equal(other.status, 404);
+  });
+
+  it("creates seminars and blocks staff B", async () => {
+    if (!ready) return;
+    const created = await request("/api/seminars", {
+      method: "POST",
+      cookies: a,
+      body: {
+        title: "Intro to ML",
+        subject: "Machine Learning",
+        classId: classA,
+        date: "2026-08-25",
+        time: "11:00",
+        venue: "Hall A",
+        maxMarks: 5,
+      },
+    });
+    assert.equal(created.status, 201);
+    const id = created.data.seminar.id;
+    const saved = await request(`/api/seminars/${id}/records`, {
+      method: "POST",
+      cookies: a,
+      body: { records: [{ studentId: studentA, participation: "yes", obtainedMarks: 4, remarks: "Good" }] },
+    });
+    assert.equal(saved.status, 200);
+    const other = await request(`/api/seminars/${id}`, { cookies: b });
+    assert.equal(other.status, 404);
   });
 });

@@ -4,7 +4,9 @@ const Student = require("../models/Student");
 const { HttpError } = require("../utils/httpError");
 const { escapeRegex } = require("../utils/validators");
 const { publicFileUrl } = require("../middleware/upload");
-const { studentAttendanceSummary, studentMarksSummary } = require("../services/statsService");
+const AssignmentMark = require("../models/AssignmentMark");
+const SeminarRecord = require("../models/SeminarRecord");
+const { studentAttendanceSummary, studentMarksSummary, percent } = require("../services/statsService");
 
 async function assertOwnClass(userId, classId) {
   if (!mongoose.isValidObjectId(classId)) throw new HttpError(404, "Class not found.");
@@ -152,14 +154,51 @@ async function getStudent(req, res, next) {
       .populate("class", "name subject section semester academicYear")
       .lean();
     if (!student) throw new HttpError(404, "Student not found.");
-    const [attendance, tests] = await Promise.all([
+    const [attendance, tests, assignmentMarks, seminarRecords] = await Promise.all([
       studentAttendanceSummary(student._id, student.class?._id, req.user._id),
       studentMarksSummary(student._id, req.user._id),
+      AssignmentMark.find({ student: student._id, user: req.user._id })
+        .populate("assignment", "title subject dueDate maxMarks")
+        .lean(),
+      SeminarRecord.find({ student: student._id, user: req.user._id })
+        .populate("seminar", "title subject date maxMarks")
+        .lean(),
     ]);
+    const assignments = {
+      count: assignmentMarks.length,
+      items: assignmentMarks
+        .filter((m) => m.assignment)
+        .map((m) => ({
+          id: m.assignment._id,
+          title: m.assignment.title,
+          subject: m.assignment.subject,
+          dueDate: m.assignment.dueDate,
+          obtainedMarks: m.obtainedMarks,
+          maxMarks: m.assignment.maxMarks,
+          percentage: percent(m.obtainedMarks, m.assignment.maxMarks),
+        })),
+    };
+    const seminars = {
+      count: seminarRecords.length,
+      items: seminarRecords
+        .filter((r) => r.seminar)
+        .map((r) => ({
+          id: r.seminar._id,
+          title: r.seminar.title,
+          subject: r.seminar.subject,
+          date: r.seminar.date,
+          participation: r.participation,
+          obtainedMarks: r.obtainedMarks,
+          maxMarks: r.seminar.maxMarks,
+          remarks: r.remarks,
+        })),
+    };
     res.json({
       student: { ...student, id: student._id },
       attendance,
       tests,
+      assignments,
+      seminars,
     });
   } catch (err) {
     next(err);

@@ -2,17 +2,10 @@ const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 
-const SKIP = new Set(
-  "present absent p a roll no number name student id class section sl sno sr".split(" ")
+const HEADER = /^(roll|s(?:l|r|no)|student\s*id|name|student\s*name|class|section|id)\b/i;
+const SKIP_WORDS = new Set(
+  "present absent p a roll no number name student id class section sl sno sr of the and".split(" ")
 );
-
-function tokenize(text) {
-  return String(text || "")
-    .replace(/[^\w\s.-]/g, " ")
-    .split(/\s+/)
-    .map((t) => t.trim())
-    .filter(Boolean);
-}
 
 function normalize(s) {
   return String(s || "")
@@ -20,40 +13,95 @@ function normalize(s) {
     .replace(/[^a-z0-9]/g, "");
 }
 
-function looksLikeId(token) {
+function splitColumns(line) {
+  const trimmed = String(line || "").replace(/\s+/g, " ").trim();
+  if (!trimmed) return [];
+  const byTab = trimmed.split(/\t+/).map((c) => c.trim()).filter(Boolean);
+  if (byTab.length >= 2) return byTab;
+  const byMulti = trimmed.split(/\s{2,}/).map((c) => c.trim()).filter(Boolean);
+  if (byMulti.length >= 2) return byMulti;
+  return trimmed.split(" ").filter(Boolean);
+}
+
+function isSerial(token) {
+  return /^\d{1,2}$/.test(token);
+}
+
+function isStudentId(token) {
   if (!token) return false;
-  if (SKIP.has(token.toLowerCase())) return false;
-  return /^(?:[A-Za-z]{0,6}-?)?\d{1,12}$/.test(token) || /[A-Za-z]{1,4}\d{2,12}/.test(token);
+  const t = String(token).replace(/[|]/g, "").trim();
+  if (SKIP_WORDS.has(t.toLowerCase())) return false;
+  if (/^\d{2}[A-Za-z]{2,10}\d{2,8}$/i.test(t)) return true;
+  if (/^[A-Za-z]{1,10}\d{2,10}$/i.test(t)) return true;
+  if (/^[A-Za-z]\d{2,8}$/i.test(t)) return true;
+  if (/^\d{3,12}$/.test(t)) return true;
+  if (/^[A-Za-z]{0,6}-?\d{2,12}$/.test(t) && t.length >= 3) return true;
+  return false;
+}
+
+function isNamePart(token) {
+  if (!token) return false;
+  if (SKIP_WORDS.has(token.toLowerCase())) return false;
+  if (isStudentId(token) && /[0-9]/.test(token) && /[A-Za-z]/.test(token) && token.length >= 5) return false;
+  if (isSerial(token)) return false;
+  return /^[A-Za-z][A-Za-z.'-]{1,}$/.test(token);
+}
+
+function isHeaderLine(line) {
+  const lower = line.toLowerCase();
+  if (HEADER.test(lower) && (lower.includes("name") || lower.includes("id") || lower.includes("roll"))) {
+    return lower.split(" ").length <= 8;
+  }
+  return false;
+}
+
+function parseLine(line) {
+  const raw = String(line || "").trim();
+  if (raw.length < 3) return null;
+  if (isHeaderLine(raw)) return null;
+
+  const cols = splitColumns(raw);
+  let tokens = cols.length >= 2 ? cols.flatMap((c) => (c.includes(" ") && cols.length < 3 ? c.split(" ") : [c])) : raw.split(/\s+/);
+
+  tokens = tokens.map((t) => t.replace(/[|,;]+/g, "")).filter(Boolean);
+  if (!tokens.length) return null;
+
+  let serial = "";
+  if (isSerial(tokens[0]) && tokens.slice(1).some(isStudentId)) {
+    serial = tokens[0];
+    tokens = tokens.slice(1);
+  }
+
+  const idTokens = tokens.filter(isStudentId);
+  let studentId = "";
+  if (idTokens.length) {
+    studentId = idTokens.find((t) => /[A-Za-z]/.test(t)) || idTokens[idTokens.length - 1];
+  }
+
+  const rest = tokens.filter((t) => t !== studentId && t !== serial && !SKIP_WORDS.has(t.toLowerCase()));
+  const name = rest
+    .join(" ")
+    .split(/\s+/)
+    .filter((t) => isNamePart(t))
+    .slice(0, 6)
+    .join(" ");
+
+  if (!studentId && !name) return null;
+  const confidence = studentId && name.split(" ").length >= 1 && name.length >= 3 ? "ok" : "needs_review";
+  return { studentId, name, raw, serial, confidence };
 }
 
 function extractCandidates(ocrText) {
   const lines = String(ocrText || "")
-    .split(/\r?\n/)
+    .replace(/\r/g, "")
+    .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
 
   const rows = [];
-  const idLike = /\b([A-Za-z]{0,6}-?\d{1,12})\b/g;
-
   for (const line of lines) {
-    if (line.length < 2) continue;
-    const lower = line.toLowerCase();
-    if (lower.includes("student name") && lower.includes("id")) continue;
-    if (/^(name|roll|student|class|section)\b/i.test(line) && line.split(/\s+/).length <= 4) continue;
-
-    const ids = [...line.matchAll(idLike)].map((m) => m[1]).filter(looksLikeId);
-    const words = tokenize(line).filter((w) => !SKIP.has(w.toLowerCase()) && !looksLikeId(w) && /[A-Za-z]/.test(w));
-    const nameGuess = words.slice(0, 5).join(" ");
-    const studentId = ids.length ? ids[ids.length - 1] : "";
-
-    if (studentId || nameGuess.length >= 3) {
-      rows.push({
-        studentId,
-        name: nameGuess,
-        raw: line,
-        confidence: studentId && nameGuess.length >= 3 ? "ok" : "needs_review",
-      });
-    }
+    const parsed = parseLine(line);
+    if (parsed && (parsed.studentId || parsed.name.length >= 3)) rows.push(parsed);
   }
   return rows;
 }
@@ -63,43 +111,31 @@ function matchStudents(extracted, students) {
     const idN = normalize(row.studentId);
     const nameN = normalize(row.name);
     let match = null;
-    let confidence = "needs_review";
-
     if (idN) {
-      match = students.find(
-        (st) => normalize(st.studentId) === idN || normalize(st.rollNo) === idN
-      );
-      if (match) confidence = "matched";
+      match = students.find((st) => normalize(st.studentId) === idN || normalize(st.rollNo) === idN);
     }
     if (!match && nameN.length >= 3) {
       match = students.find((st) => {
         const n = normalize(st.name);
         return n === nameN || n.includes(nameN) || nameN.includes(n);
       });
-      if (match) confidence = "matched";
     }
-
     return {
       extractedId: row.studentId || "",
       extractedName: row.name || "",
       raw: row.raw,
       student: match
-        ? {
-            id: match._id,
-            name: match.name,
-            rollNo: match.rollNo,
-            studentId: match.studentId,
-          }
+        ? { id: match._id, name: match.name, rollNo: match.rollNo, studentId: match.studentId }
         : null,
       status: match ? "matched" : "needs_review",
-      confidence,
+      confidence: match ? "matched" : row.confidence || "needs_review",
     };
   });
 }
 
 function classifyImportRows(extracted, existing, ocrConfidence) {
   const seen = new Set();
-  const overallWeak = ocrConfidence != null && ocrConfidence < 55;
+  const overallWeak = ocrConfidence != null && ocrConfidence < 50;
   return extracted.map((row, index) => {
     const studentId = String(row.studentId || "").trim();
     const name = String(row.name || "").trim();
@@ -110,13 +146,10 @@ function classifyImportRows(extracted, existing, ocrConfidence) {
     const fileDup = Boolean(idN && seen.has(idN));
     if (idN) seen.add(idN);
 
-    const incomplete = !studentId || !name;
-    const lineWeak = overallWeak || row.confidence === "needs_review" || incomplete;
-
+    const incomplete = !studentId || name.length < 3;
     let status = "new";
-    if (existingMatch) status = "matched";
-    else if (fileDup) status = "duplicate";
-    else if (lineWeak) status = "needs_review";
+    if (existingMatch || fileDup) status = "duplicate";
+    else if (overallWeak || row.confidence === "needs_review" || incomplete) status = "needs_review";
 
     return {
       key: `${index}-${studentId}-${name}`,
@@ -135,11 +168,11 @@ async function preprocessImage(filePath) {
   const out = path.join(dir, `prep-${path.basename(filePath)}.png`);
   await sharp(filePath)
     .rotate()
-    .resize({ width: 1800, withoutEnlargement: true })
+    .resize({ width: 2000, withoutEnlargement: false })
     .grayscale()
     .normalize()
+    .linear(1.25, -20)
     .sharpen()
-    .threshold(160)
     .png()
     .toFile(out);
   return out;
@@ -156,14 +189,20 @@ async function runOcr(filePath) {
   }
 
   const prepared = await preprocessImage(filePath);
-  const result = await Tesseract.recognize(prepared, "eng", {
-    tessedit_char_whitelist:
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .-_",
-  });
+  const worker = await Tesseract.createWorker("eng");
+  let result;
   try {
-    fs.unlinkSync(prepared);
-  } catch {
-    /* ignore */
+    await worker.setParameters({
+      tessedit_pageseg_mode: "6",
+    });
+    result = await worker.recognize(prepared);
+  } finally {
+    await worker.terminate();
+    try {
+      fs.unlinkSync(prepared);
+    } catch {
+      /* ignore */
+    }
   }
   return {
     text: result.data?.text || "",
@@ -175,6 +214,7 @@ module.exports = {
   extractCandidates,
   matchStudents,
   classifyImportRows,
+  parseLine,
   runOcr,
   preprocessImage,
 };

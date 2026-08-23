@@ -4,6 +4,8 @@ const AttendanceSession = require("../models/AttendanceSession");
 const AttendanceRecord = require("../models/AttendanceRecord");
 const Test = require("../models/Test");
 const Mark = require("../models/Mark");
+const Assignment = require("../models/Assignment");
+const Seminar = require("../models/Seminar");
 const CollegeSettings = require("../models/CollegeSettings");
 const { percent } = require("../services/statsService");
 
@@ -17,13 +19,15 @@ async function getDashboard(req, res, next) {
     const settings = await CollegeSettings.findOne({ user: userId }).lean();
     const threshold = settings?.minAttendancePercent ?? 75;
 
-    const [classes, students, sessions, tests, marks, records] = await Promise.all([
+    const [classes, students, sessions, tests, marks, records, assignments, seminars] = await Promise.all([
       ClassModel.find({ user: userId, archived: { $ne: true } }).sort({ createdAt: -1 }).lean(),
       Student.find({ user: userId, archived: { $ne: true } }).select("name class rollNo studentId createdAt").lean(),
       AttendanceSession.find({ user: userId }).sort({ date: 1, createdAt: 1 }).lean(),
       Test.find({ user: userId }).sort({ createdAt: -1 }).select("name subject createdAt class").lean(),
       Mark.find({ user: userId }).populate("test", "totalMarks").lean(),
       AttendanceRecord.find({ user: userId }).select("student status class").lean(),
+      Assignment.find({ user: userId, archived: { $ne: true } }).sort({ createdAt: -1 }).select("title subject createdAt").lean(),
+      Seminar.find({ user: userId, archived: { $ne: true } }).sort({ createdAt: -1 }).select("title subject createdAt").lean(),
     ]);
 
     const classById = new Map(classes.map((c) => [String(c._id), c]));
@@ -122,6 +126,12 @@ async function getDashboard(req, res, next) {
     tests.slice(0, 8).forEach((t) => {
       activity.push(activityItem("test", `Test created: ${t.name}`, t.createdAt, t.subject));
     });
+    assignments.slice(0, 8).forEach((a) => {
+      activity.push(activityItem("assignment", `Assignment created: ${a.title}`, a.createdAt, a.subject));
+    });
+    seminars.slice(0, 8).forEach((s) => {
+      activity.push(activityItem("seminar", `Seminar created: ${s.title}`, s.createdAt, s.subject));
+    });
     marks.slice(-8).forEach((m) => {
       activity.push(activityItem("marks", "Marks updated", m.updatedAt || m.createdAt, ""));
     });
@@ -137,6 +147,8 @@ async function getDashboard(req, res, next) {
         totalClassesConducted: sessions.length,
         overallAttendance: hasAttendance ? percent(presentTotal, presentTotal + absentTotal) : null,
         totalTests: tests.length,
+        totalAssignments: assignments.length,
+        totalSeminars: seminars.length,
         averageMarks,
         presentTotal,
         absentTotal,

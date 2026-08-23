@@ -16,6 +16,8 @@ export function Icon({ name, size = 18 }) {
     attendance: <><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></>,
     tests: <><path d="M8 4h8a2 2 0 0 1 2 2v14l-6-3-6 3V6a2 2 0 0 1 2-2z" /></>,
     reports: <><path d="M4 19V5" /><path d="M4 19h16" /><path d="M8 15v4" /><path d="M12 11v8" /><path d="M16 8v11" /></>,
+    assignments: <><path d="M8 4h8v4H8z" /><path d="M6 8h12v12H6z" /><path d="M9 13h6M9 17h4" /></>,
+    seminars: <><path d="M4 19V8l8-4 8 4v11" /><path d="M12 8v11" /><circle cx="12" cy="14" r="1.5" /></>,
     staff: <><circle cx="12" cy="8" r="3.5" /><path d="M5 19c1.2-3 3.8-4.5 7-4.5s5.8 1.5 7 4.5" /></>,
     settings: <><circle cx="12" cy="12" r="3" /><path d="M12 3v2M12 19v2M5 5l1.5 1.5M17.5 17.5 19 19M3 12h2M19 12h2M5 19l1.5-1.5M17.5 6.5 19 5" /></>,
     contact: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>,

@@ -24,12 +24,25 @@ export default function ImportStudents() {
   const [rows, setRows] = useState([]);
   const [ocrText, setOcrText] = useState("");
   const [drag, setDrag] = useState(false);
+  const [warning, setWarning] = useState("");
 
   useEffect(() => {
     api.get("/classes").then(({ data }) => setClasses(data.classes)).catch((err) => setError(err.message));
   }, []);
 
   function setImage(next) {
+    setError("");
+    if (next) {
+      const okType = /image\/(jpeg|jpg|png)/i.test(next.type) || /\.(jpe?g|png)$/i.test(next.name || "");
+      if (!okType) {
+        setError("Please upload a JPG, JPEG, or PNG image.");
+        return;
+      }
+      if (next.size > 8 * 1024 * 1024) {
+        setError("Image is too large. Use a file under 8 MB.");
+        return;
+      }
+    }
     setFile(next || null);
     if (preview) URL.revokeObjectURL(preview);
     setPreview(next ? URL.createObjectURL(next) : "");
@@ -44,6 +57,7 @@ export default function ImportStudents() {
     setBusy(true);
     setError("");
     setSuccess("");
+    setWarning("");
     try {
       const fd = new FormData();
       fd.append("image", file);
@@ -51,7 +65,10 @@ export default function ImportStudents() {
       const { data } = await api.post("/ocr/students", fd);
       setRows(data.rows || []);
       setOcrText(data.ocrText || "");
-      if (!(data.rows || []).length) setError("No student rows were detected. Try a clearer image or add students manually.");
+      if (data.needsReview) setWarning(data.message || "We couldn't reliably read some rows. Please review the highlighted entries.");
+      if (!(data.rows || []).length) {
+        setError("No student information could be detected. Try a clearer image or add students manually.");
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -91,6 +108,7 @@ export default function ImportStudents() {
         text="Upload a photo of a student list. Extracted names and IDs are never saved until you review and import them. This does not mark attendance."
       />
       {error && <div className="error">{error}</div>}
+      {warning && <div className="error">{warning}</div>}
       {success && <div className="success">{success}</div>}
       <form className="card page-card" onSubmit={extract}>
         <label className="field">

@@ -46,6 +46,25 @@ describe("ocr matching", () => {
     const matched = rows.filter((r) => r.status === "matched");
     assert.ok(matched.length >= 2);
   });
+
+  it("parses mixed student-list layouts", () => {
+    const text = [
+      "01    22AIML001    Rahul Kumar",
+      "02    22AIML002    Priya Sharma",
+      "Roll No     Student ID      Student Name",
+      "1           AIML001         Rahul Kumar",
+      "Student ID    Name",
+      "A001          Rahul Kumar",
+      "A002          Priya Sharma",
+    ].join("\n");
+    const rows = extractCandidates(text);
+    const ids = rows.map((r) => r.studentId);
+    assert.ok(ids.includes("22AIML001"));
+    assert.ok(ids.includes("AIML001"));
+    assert.ok(ids.includes("A001"));
+    assert.equal(rows.find((r) => r.studentId === "22AIML001").name, "Rahul Kumar");
+    assert.equal(rows.find((r) => r.studentId === "A002").name, "Priya Sharma");
+  });
 });
 
 describe("csv and stats", () => {

@@ -52,7 +52,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="stat-grid">
-          {Array.from({ length: 6 }).map((_, i) => (
+          {Array.from({ length: 8 }).map((_, i) => (
             <StatSkeleton key={i} />
           ))}
         </div>
@@ -100,6 +100,8 @@ export default function Dashboard() {
           tone="ok"
         />
         <StatCard label="Total tests" value={s.totalTests} hint="Assessments you have created" icon="tests" tone="warn" />
+        <StatCard label="Total assignments" value={s.totalAssignments ?? 0} hint="Assignments you have created" icon="assignments" tone="warn" />
+        <StatCard label="Total seminars" value={s.totalSeminars ?? 0} hint="Seminars you have scheduled" icon="seminars" tone="accent" />
         <StatCard
           label="Average marks"
           value={s.averageMarks == null ? "No data yet" : `${s.averageMarks}%`}

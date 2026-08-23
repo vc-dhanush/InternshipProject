@@ -154,7 +154,7 @@ export default function ClassDetail() {
             <button className="btn" type="button" onClick={() => { setForm(emptyStudent); setAddOpen(true); }}>
               <Icon name="plus" size={16} /> Add Student
             </button>
-            <Link className="btn secondary" to={`/app/import?classId=${classId}`}>Import students</Link>
+            <Link className="btn secondary" to={`/app/import-students?classId=${classId}`}>Import students</Link>
           </div>
         }
       />

@@ -26,19 +26,30 @@ async function previewStudents(req, res, next) {
     if (!String(text).trim()) {
       throw new HttpError(
         422,
-        "No text was detected in this image. Use a well-lit, unblurred photo, then review results before importing."
+        "No student information could be detected. Try a clearer image or add students manually."
       );
     }
 
     const existing = await Student.find({ class: classId, user: req.user._id, archived: { $ne: true } }).lean();
     const extracted = extractCandidates(text);
     const rows = classifyImportRows(extracted, existing, confidence);
+    if (!rows.length) {
+      throw new HttpError(
+        422,
+        "No student information could be detected. Try a clearer image or add students manually."
+      );
+    }
 
+    const reviewCount = rows.filter((r) => r.status === "needs_review").length;
     res.json({
       ocrText: text,
       ocrConfidence: confidence,
       rows,
-      message: "Review extracted students. Nothing is saved until you import selected rows.",
+      needsReview: reviewCount > 0,
+      message:
+        reviewCount > 0
+          ? "We couldn't reliably read some rows. Please review the highlighted entries."
+          : "Review extracted students. Nothing is saved until you import selected rows.",
     });
   } catch (err) {
     next(err);

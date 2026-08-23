@@ -264,7 +264,8 @@ img { max-width: 100%; display: block; }
 .activity-list li { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .activity-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: var(--accent); flex-shrink: 0; }
 .activity-dot.attendance { background: var(--ok); }
-.activity-dot.test, .activity-dot.marks { background: var(--warn); }
+.activity-dot.test, .activity-dot.marks, .activity-dot.assignment { background: var(--warn); }
+.activity-dot.seminar { background: var(--accent-2); }
 .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .quick-action {
   display: flex; align-items: center; gap: 8px;
